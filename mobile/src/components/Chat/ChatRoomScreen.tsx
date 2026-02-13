@@ -102,18 +102,29 @@ export default function ChatRoomScreen({
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
-  const [received, setReceived] = useState("");
+  const [received, setReceived] = useState(mockMessages);
 
   useEffect(() => {
     socket.on("receive_message", (data) => {
-      setReceived(data);
+      setReceived((prev) => [
+        ...prev,
+        {
+          id: prev.length + 1,
+          sender: "opponent",
+          type: "text",
+          content: data,
+          timestamp: new Date().toLocaleTimeString(),
+        },
+      ]);
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: false });
+      }, 100);
     });
 
     return () => {
       socket.off("receive_message");
     };
   }, []);
-
 
   useEffect(() => {
     // Scroll to bottom when component mounts
@@ -302,7 +313,7 @@ export default function ChatRoomScreen({
       {/* Messages List */}
       <FlatList
         ref={flatListRef}
-        data={mockMessages}
+        data={received}
         renderItem={renderMessage}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.messagesList}

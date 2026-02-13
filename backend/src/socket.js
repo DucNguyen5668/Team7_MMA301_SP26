@@ -1,5 +1,8 @@
 const { Server } = require("socket.io");
 
+const chatSocket = require("./sockets/chat.socket");
+const socketAuth = require("./middleware/socketAuth");
+
 function initSocket(server) {
   const io = new Server(server, {
     cors: {
@@ -8,8 +11,10 @@ function initSocket(server) {
     },
   });
 
+  io.use(socketAuth);
+
   io.on("connection", (socket) => {
-    console.log("User connected:", socket.id);
+    chatSocket(io, socket);
 
     socket.on("send_message", (data) => {
       console.log("Message received:", data);
