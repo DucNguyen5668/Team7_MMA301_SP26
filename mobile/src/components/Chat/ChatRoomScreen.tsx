@@ -17,6 +17,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Conversation, Message } from "../../screens/ChatScreen";
 import { io } from "socket.io-client";
+import StarRating from "../Rating/StarRating";
 
 const socket = io("http://192.168.0.106:5000");
 
@@ -92,11 +93,13 @@ const mockMessages: Message[] = [
 interface ChatRoomScreenProps {
   conversation: Conversation;
   onBack: () => void;
+  onViewProfile: () => void;
 }
 
 export default function ChatRoomScreen({
   conversation,
   onBack,
+  onViewProfile,
 }: ChatRoomScreenProps) {
   const [messageInput, setMessageInput] = useState("");
   const [showAttachMenu, setShowAttachMenu] = useState(false);
@@ -128,7 +131,6 @@ export default function ChatRoomScreen({
 
   useEffect(() => {
     // Scroll to bottom when component mounts
-
     setTimeout(() => {
       flatListRef.current?.scrollToEnd({ animated: false });
     }, 100);
@@ -276,15 +278,30 @@ export default function ChatRoomScreen({
           <Ionicons name="chevron-back" size={24} color="#222" />
         </TouchableOpacity>
 
-        <Image
-          source={{ uri: conversation.opponentAvatar }}
-          style={styles.headerAvatar}
-        />
+        <TouchableOpacity
+          style={styles.headerUserInfo}
+          onPress={onViewProfile}
+          activeOpacity={0.7}
+        >
+          <Image
+            source={{ uri: conversation.opponentAvatar }}
+            style={styles.headerAvatar}
+          />
 
-        <View style={styles.headerInfo}>
-          <Text style={styles.headerName}>{conversation.opponentName}</Text>
-          <Text style={styles.headerStatus}>Đang hoạt động</Text>
-        </View>
+          <View style={styles.headerInfo}>
+            <Text style={styles.headerName}>{conversation.opponentName}</Text>
+            <View style={styles.headerRating}>
+              <StarRating rating={conversation.rating} size={12} />
+              <Text style={styles.headerRatingCount}>
+                ({conversation.totalRatings})
+              </Text>
+            </View>
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.moreButton}>
+          <Ionicons name="ellipsis-vertical" size={20} color="#666" />
+        </TouchableOpacity>
       </View>
 
       {/* Product Card */}
@@ -389,15 +406,20 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 12,
-    paddingTop: 50,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     backgroundColor: "#fff",
     borderBottomWidth: 1,
     borderBottomColor: "#e8e8e8",
-    gap: 12,
   },
   backButton: {
     padding: 8,
+    marginRight: 8,
+  },
+  headerUserInfo: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
   },
   headerAvatar: {
     width: 40,
@@ -405,6 +427,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 2,
     borderColor: "#f0f0f0",
+    marginRight: 12,
   },
   headerInfo: {
     flex: 1,
@@ -413,17 +436,26 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: "#222",
+    marginBottom: 4,
   },
-  headerStatus: {
-    fontSize: 13,
-    color: "#999",
+  headerRating: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  headerRatingCount: {
+    fontSize: 12,
+    color: "#666",
+    fontWeight: "500",
+  },
+  moreButton: {
+    padding: 8,
   },
   productCard: {
     flexDirection: "row",
+    alignItems: "center",
     padding: 12,
     paddingHorizontal: 16,
-    alignItems: "center",
-    gap: 12,
     borderTopWidth: 1,
     borderTopColor: "#f0f0f0",
     borderBottomWidth: 2,
@@ -435,6 +467,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 2,
     borderColor: "#fff",
+    marginRight: 12,
   },
   productCardInfo: {
     flex: 1,
@@ -454,8 +487,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    paddingHorizontal: 14,
     paddingVertical: 8,
+    paddingHorizontal: 14,
     borderWidth: 1,
     borderColor: "#FDD835",
     borderRadius: 8,
@@ -468,10 +501,10 @@ const styles = StyleSheet.create({
   },
   messagesList: {
     padding: 16,
-    gap: 12,
+    paddingBottom: 8,
   },
   messageContainer: {
-    marginBottom: 4,
+    marginBottom: 12,
   },
   messageContainerMe: {
     alignItems: "flex-end",
@@ -482,8 +515,8 @@ const styles = StyleSheet.create({
   messageBubble: {
     maxWidth: "75%",
     borderRadius: 18,
-    padding: 12,
     paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   messageBubbleMe: {
     backgroundColor: "#FDD835",
@@ -496,15 +529,15 @@ const styles = StyleSheet.create({
   messageText: {
     fontSize: 15,
     color: "#222",
-    lineHeight: 21,
+    lineHeight: 20,
   },
   messageImage: {
-    width: 240,
-    height: 180,
+    width: 200,
+    height: 150,
     borderRadius: 12,
   },
   locationContainer: {
-    minWidth: 200,
+    width: 200,
   },
   locationHeader: {
     flexDirection: "row",
@@ -539,17 +572,17 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderTopWidth: 1,
     borderTopColor: "#e8e8e8",
-    paddingBottom: Platform.OS === "ios" ? 20 : 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   quickActions: {
-    maxHeight: 40,
-    paddingVertical: 8,
+    marginBottom: 8,
   },
   quickActionsContent: {
-    paddingHorizontal: 16,
     gap: 8,
   },
   quickActionButton: {
+    paddingVertical: 6,
     paddingHorizontal: 12,
     borderWidth: 1,
     borderColor: "#e8e8e8",
@@ -562,24 +595,23 @@ const styles = StyleSheet.create({
   },
   inputBar: {
     flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingTop: 4,
+    alignItems: "flex-end",
     gap: 8,
   },
-  inputIconButton: {},
+  inputIconButton: {
+    padding: 8,
+  },
   textInputContainer: {
     flex: 1,
     backgroundColor: "#f5f5f5",
     borderRadius: 24,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    maxHeight: 100,
   },
   textInput: {
     fontSize: 15,
     color: "#222",
-    maxHeight: 80,
+    maxHeight: 100,
   },
   sendButton: {
     width: 44,
@@ -596,20 +628,19 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "flex-end",
-    padding: 16,
-    paddingBottom: 100,
   },
   attachMenu: {
     backgroundColor: "#fff",
-    borderRadius: 12,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
     padding: 8,
-    minWidth: 180,
+    marginBottom: 0,
   },
   attachMenuItem: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    padding: 12,
+    padding: 16,
     borderRadius: 8,
   },
   attachMenuText: {
@@ -624,7 +655,7 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     position: "absolute",
-    top: 50,
+    top: 40,
     right: 20,
     width: 44,
     height: 44,
@@ -637,6 +668,5 @@ const styles = StyleSheet.create({
   previewImage: {
     width: "90%",
     height: "80%",
-    borderRadius: 8,
   },
 });

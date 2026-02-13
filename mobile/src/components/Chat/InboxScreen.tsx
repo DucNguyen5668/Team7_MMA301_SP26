@@ -13,7 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Conversation } from "../../screens/ChatScreen";
 
-// Mock data
+// Mock data with rating information
 const mockConversations: Conversation[] = [
   {
     id: 1,
@@ -27,6 +27,11 @@ const mockConversations: Conversation[] = [
     timestamp: "2 phút",
     unread: 2,
     lastMessageTime: new Date(),
+    rating: 4.8,
+    totalRatings: 127,
+    memberSince: "Tháng 3, 2023",
+    responseRate: "98%",
+    responseTime: "~ 5 phút",
   },
   {
     id: 2,
@@ -40,6 +45,11 @@ const mockConversations: Conversation[] = [
     timestamp: "15 phút",
     unread: 0,
     lastMessageTime: new Date(Date.now() - 15 * 60000),
+    rating: 5.0,
+    totalRatings: 89,
+    memberSince: "Tháng 1, 2022",
+    responseRate: "100%",
+    responseTime: "~ 2 phút",
   },
   {
     id: 3,
@@ -53,6 +63,11 @@ const mockConversations: Conversation[] = [
     timestamp: "1 giờ",
     unread: 0,
     lastMessageTime: new Date(Date.now() - 60 * 60000),
+    rating: 4.5,
+    totalRatings: 234,
+    memberSince: "Tháng 8, 2021",
+    responseRate: "95%",
+    responseTime: "~ 10 phút",
   },
   {
     id: 4,
@@ -66,6 +81,11 @@ const mockConversations: Conversation[] = [
     timestamp: "3 giờ",
     unread: 1,
     lastMessageTime: new Date(Date.now() - 3 * 60 * 60000),
+    rating: 4.9,
+    totalRatings: 56,
+    memberSince: "Tháng 11, 2023",
+    responseRate: "99%",
+    responseTime: "~ 3 phút",
   },
 ];
 
@@ -96,10 +116,7 @@ export default function InboxScreen({ onOpenChat }: InboxScreenProps) {
     >
       {/* Avatar */}
       <View style={styles.avatarContainer}>
-        <Image
-          source={{ uri: item.opponentAvatar }}
-          style={styles.avatar}
-        />
+        <Image source={{ uri: item.opponentAvatar }} style={styles.avatar} />
         {item.unread > 0 && (
           <View style={styles.unreadBadge}>
             <Text style={styles.unreadBadgeText}>{item.unread}</Text>
@@ -145,7 +162,7 @@ export default function InboxScreen({ onOpenChat }: InboxScreenProps) {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-      
+
       {/* Header */}
       <LinearGradient
         colors={["#fff5e1", "#ffffff"]}
@@ -238,10 +255,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   headerGradient: {
-    paddingTop: 50,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#e8e8e8",
+    paddingTop: 16,
   },
   header: {
     flexDirection: "row",
@@ -256,17 +270,12 @@ const styles = StyleSheet.create({
     color: "#222",
   },
   composeButton: {
+    backgroundColor: "#FDD835",
+    borderRadius: 20,
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: "#FDD835",
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#FDD835",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
   },
   searchContainer: {
     paddingHorizontal: 16,
@@ -292,16 +301,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 8,
     paddingHorizontal: 16,
-    paddingTop: 4,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
   },
   filterTab: {
-    paddingHorizontal: 16,
     paddingVertical: 8,
+    paddingHorizontal: 16,
     borderRadius: 20,
     backgroundColor: "#f5f5f5",
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 8,
   },
   filterTabActive: {
     backgroundColor: "#FDD835",
@@ -324,7 +335,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   filterBadgeText: {
-    color: "white",
+    color: "#fff",
     fontSize: 11,
     fontWeight: "700",
   },
@@ -335,13 +346,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     padding: 12,
     paddingHorizontal: 16,
-    gap: 12,
     backgroundColor: "#fff",
     borderBottomWidth: 1,
     borderBottomColor: "#f5f5f5",
   },
   avatarContainer: {
     position: "relative",
+    marginRight: 12,
   },
   avatar: {
     width: 52,
@@ -354,23 +365,22 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: -2,
     right: -2,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
     backgroundColor: "#FF5722",
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
-    borderColor: "white",
+    borderColor: "#fff",
   },
   unreadBadgeText: {
-    color: "white",
+    color: "#fff",
     fontSize: 11,
     fontWeight: "700",
   },
   conversationContent: {
     flex: 1,
-    justifyContent: "center",
   },
   conversationHeader: {
     flexDirection: "row",
@@ -389,9 +399,9 @@ const styles = StyleSheet.create({
   },
   productInfo: {
     flexDirection: "row",
-    gap: 8,
-    marginBottom: 6,
     alignItems: "center",
+    marginBottom: 6,
+    gap: 8,
   },
   productImage: {
     width: 32,

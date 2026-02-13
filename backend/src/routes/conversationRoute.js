@@ -1,8 +1,12 @@
 const express = require("express");
 const router = express.Router();
-const authController = require("../controllers/authController");
+const conversationController = require("../controllers/conversationController");
+const { authenticate } = require("../middleware/authMiddleware");
 
-router.post("/register", authController.register);
-router.post("/login", authController.login);
+router.use(authenticate);
+
+router.get("/", conversationController.getConversations);
+router.get("/:id", conversationController.getConversationById);
+router.post("/", conversationController.createOrGetPrivateConversation);
 
 module.exports = router;

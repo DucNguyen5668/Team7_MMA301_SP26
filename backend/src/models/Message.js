@@ -11,7 +11,10 @@ const MessageSchema = new mongoose.Schema(
       ref: "User",
     },
     content: String,
-    type: { type: String, enum: ["text", "image", "location"] },
+    type: {
+      type: String,
+      enum: ["text", "image", "location", "video", "product"],
+    },
     createdAt: { type: Date, default: Date.now },
   },
   { timestamps: true },

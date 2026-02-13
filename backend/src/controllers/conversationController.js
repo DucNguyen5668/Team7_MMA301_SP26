@@ -2,12 +2,12 @@ const Conversation = require("../models/Conversation");
 
 exports.getConversations = async (req, res) => {
   try {
-    const userId = req.user.id; // từ middleware auth
+    const userId = req.user.id; 
 
     const conversations = await Conversation.find({
       participants: userId
     })
-      .populate("participants", "username email") // hoặc fields bạn muốn
+      .populate("participants", "username email") 
       .populate("lastMessage")
       .sort({ updatedAt: -1 })
       .lean();
