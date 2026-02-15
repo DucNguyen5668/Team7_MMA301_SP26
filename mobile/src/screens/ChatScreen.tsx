@@ -41,6 +41,7 @@ export default function ChatScreen() {
 
   const openChat = (conversation: Conversation) => {
     setSelectedConversation(conversation);
+    console.log('selectedConversation', conversation)
     setCurrentScreen("chat");
   };
 
@@ -69,6 +70,7 @@ export default function ChatScreen() {
       
       {currentScreen === "chat" && selectedConversation && (
         <ChatRoomScreen
+          
           conversation={selectedConversation}
           onBack={backToInbox}
           onViewProfile={openProfile}

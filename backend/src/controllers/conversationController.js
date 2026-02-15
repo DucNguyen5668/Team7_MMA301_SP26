@@ -2,16 +2,14 @@ const Conversation = require("../models/Conversation");
 
 exports.getConversations = async (req, res) => {
   try {
-    const userId = req.user.id; 
-
+    const userId = req.user;
     const conversations = await Conversation.find({
-      participants: userId
+      participants: userId,
     })
-      .populate("participants", "username email") 
+      .populate("participants", "fullName email")
       .populate("lastMessage")
       .sort({ updatedAt: -1 })
       .lean();
-
     res.json(conversations);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -21,13 +19,13 @@ exports.getConversations = async (req, res) => {
 exports.getConversationById = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user.id;
+    const userId = req.user;
 
     const conv = await Conversation.findOne({
       _id: id,
-      participants: userId
+      participants: userId,
     })
-      .populate("participants", "username email")
+      .populate("participants", "fullName email")
       .populate("lastMessage")
       .lean();
 
@@ -44,7 +42,7 @@ exports.getConversationById = async (req, res) => {
 exports.createOrGetPrivateConversation = async (req, res) => {
   try {
     const { userId } = req.body;
-    const currentUserId = req.user.id;
+    const currentUserId = req.user;
 
     if (userId === currentUserId.toString()) {
       return res.status(400).json({ message: "Cannot chat with yourself" });
@@ -54,20 +52,18 @@ exports.createOrGetPrivateConversation = async (req, res) => {
     const participantIds = [currentUserId, userId].sort();
 
     let conversation = await Conversation.findOne({
-      type: "private",
-      participants: { $all: participantIds, $size: 2 }
+      participants: { $all: participantIds, $size: 2 },
     })
-      .populate("participants", "username email")
+      .populate("participants", "fullName email")
       .populate("lastMessage");
 
     if (!conversation) {
       conversation = await Conversation.create({
-        type: "private",
         participants: participantIds,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       });
 
-      await conversation.populate("participants", "username email");
+      await conversation.populate("participants", "fullName email");
     }
 
     res.json(conversation);

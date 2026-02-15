@@ -120,7 +120,7 @@ export default function ProfileScreen({
         {/* Profile Info */}
         <View style={styles.profileSection}>
           <Image source={{ uri: user.avatar }} style={styles.avatar} />
-          <Text style={styles.userName}>{user.name}</Text>
+          <Text style={styles.fullName}>{user.name}</Text>
           <View style={styles.ratingContainer}>
             <StarRating rating={user.rating} size={20} showNumber={true} />
           </View>
@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
     borderColor: "#FDD835",
     marginBottom: 16,
   },
-  userName: {
+  fullName: {
     fontSize: 22,
     fontWeight: "700",
     color: "#222",

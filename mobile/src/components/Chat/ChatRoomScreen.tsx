@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useContext } from "react";
 import {
   View,
   Text,
@@ -12,83 +12,15 @@ import {
   Modal,
   Pressable,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
-import { Conversation, Message } from "../../screens/ChatScreen";
-import { io } from "socket.io-client";
-import StarRating from "../Rating/StarRating";
-
-const socket = io("http://192.168.0.106:5000");
-
-// Mock messages
-const mockMessages: Message[] = [
-  {
-    id: 1,
-    sender: "opponent",
-    type: "text",
-    content: "Xin chào! Sản phẩm này còn không ạ?",
-    timestamp: "10:30",
-  },
-  {
-    id: 2,
-    sender: "me",
-    type: "text",
-    content: "Dạ còn ạ. Bạn quan tâm đến sản phẩm này à?",
-    timestamp: "10:31",
-  },
-  {
-    id: 3,
-    sender: "opponent",
-    type: "text",
-    content: "Vâng, tôi muốn hỏi giá có thể thương lượng được không?",
-    timestamp: "10:32",
-  },
-  {
-    id: 4,
-    sender: "me",
-    type: "text",
-    content:
-      "Giá này đã là tốt nhất rồi bạn ạ. Nhưng nếu bạn mua ngay thì tôi có thể miễn phí ship cho bạn.",
-    timestamp: "10:33",
-  },
-  {
-    id: 5,
-    sender: "opponent",
-    type: "image",
-    content:
-      "https://images.unsplash.com/photo-1593642532400-2682810df593?w=800&h=600&fit=crop",
-    timestamp: "10:35",
-  },
-  {
-    id: 6,
-    sender: "opponent",
-    type: "text",
-    content: "Tôi có sản phẩm tương tự này, bạn xem nhé",
-    timestamp: "10:35",
-  },
-  {
-    id: 7,
-    sender: "me",
-    type: "location",
-    content: { lat: 21.0285, lng: 105.8542, address: "Hà Nội, Việt Nam" },
-    timestamp: "10:37",
-  },
-  {
-    id: 8,
-    sender: "me",
-    type: "text",
-    content: "Địa chỉ của tôi đây, bạn tiện thì qua xem trực tiếp nhé!",
-    timestamp: "10:37",
-  },
-  {
-    id: 9,
-    sender: "opponent",
-    type: "text",
-    content: "Được ạ, tôi sẽ qua vào chiều nay. Cảm ơn bạn!",
-    timestamp: "10:40",
-  },
-];
+import {
+  Conversation,
+  Message,
+  useChatMessages,
+} from "../../hooks/useChatMessages";
+import { AuthContext } from "../../context/authContext";
 
 interface ChatRoomScreenProps {
   conversation: Conversation;
@@ -101,57 +33,52 @@ export default function ChatRoomScreen({
   onBack,
   onViewProfile,
 }: ChatRoomScreenProps) {
+  const { user } = useContext(AuthContext);
   const [messageInput, setMessageInput] = useState("");
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+
   const flatListRef = useRef<FlatList>(null);
-  const [received, setReceived] = useState(mockMessages);
 
+  const {
+    messages,
+    loading,
+    sending,
+    loadingMore,
+    hasMore,
+    error,
+    sendMessage,
+    loadMoreMessages,
+  } = useChatMessages({
+    conversationId: conversation.id.toString(),
+    currentUserId: user.id,
+  });
+
+  // Scroll to bottom when messages change
   useEffect(() => {
-    socket.on("receive_message", (data) => {
-      setReceived((prev) => [
-        ...prev,
-        {
-          id: prev.length + 1,
-          sender: "opponent",
-          type: "text",
-          content: data,
-          timestamp: new Date().toLocaleTimeString(),
-        },
-      ]);
+    if (messages.length > 0) {
       setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: false });
-      }, 100);
-    });
-
-    return () => {
-      socket.off("receive_message");
-    };
-  }, []);
-
-  useEffect(() => {
-    // Scroll to bottom when component mounts
-    setTimeout(() => {
-      flatListRef.current?.scrollToEnd({ animated: false });
-    }, 100);
-  }, []);
-
-  const sendMessage = () => {
-    if (messageInput.trim()) {
-      // In real app, send message here
-      setMessageInput("");
-      socket.emit("send_message", messageInput);
-
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: false });
+        flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
     }
+  }, [messages.length]);
+
+  // Handle send message
+  const handleSendMessage = () => {
+    if (messageInput.trim()) {
+      sendMessage(messageInput);
+      setMessageInput("");
+    }
+  };
+
+  // Send quick action message
+  const handleQuickAction = (message: string) => {
+    sendMessage(message);
   };
 
   const handleAttach = (type: string) => {
     setShowAttachMenu(false);
     console.log("Attach:", type);
-    // In real app, open respective picker
   };
 
   const renderMessage = ({ item }: { item: Message }) => {
@@ -206,6 +133,7 @@ export default function ChatRoomScreen({
     );
   };
 
+  // Attach menu modal
   const AttachMenu = () => (
     <Modal
       visible={showAttachMenu}
@@ -238,6 +166,7 @@ export default function ChatRoomScreen({
     </Modal>
   );
 
+  // Image preview modal
   const ImagePreviewModal = () => (
     <Modal
       visible={!!imagePreview}
@@ -266,6 +195,16 @@ export default function ChatRoomScreen({
     </Modal>
   );
 
+  // Loading state
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#FDD835" />
+        <Text style={styles.loadingText}>Đang tải tin nhắn...</Text>
+      </View>
+    );
+  }
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -290,12 +229,12 @@ export default function ChatRoomScreen({
 
           <View style={styles.headerInfo}>
             <Text style={styles.headerName}>{conversation.opponentName}</Text>
-            <View style={styles.headerRating}>
-              <StarRating rating={conversation.rating} size={12} />
+            {/* <View style={styles.headerRating}>
+              <StarRating rating={conversation.rating || 0} size={12} />
               <Text style={styles.headerRatingCount}>
-                ({conversation.totalRatings})
+                ({conversation.totalRatings || 0})
               </Text>
-            </View>
+            </View> */}
           </View>
         </TouchableOpacity>
 
@@ -305,7 +244,7 @@ export default function ChatRoomScreen({
       </View>
 
       {/* Product Card */}
-      <LinearGradient
+      {/* <LinearGradient
         colors={["#FFF9E6", "#FFFBF0"]}
         style={styles.productCard}
       >
@@ -325,16 +264,42 @@ export default function ChatRoomScreen({
           <Ionicons name="open-outline" size={14} color="#222" />
           <Text style={styles.productCardButtonText}>Xem</Text>
         </TouchableOpacity>
-      </LinearGradient>
+      </LinearGradient> */}
+
+      {/* Error Message */}
+      {error && (
+        <View style={styles.errorBanner}>
+          <Ionicons name="alert-circle" size={16} color="#FF5722" />
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      )}
 
       {/* Messages List */}
       <FlatList
         ref={flatListRef}
-        data={received}
+        data={messages}
         renderItem={renderMessage}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item, index) => item.id?.toString() || index.toString()}
         contentContainerStyle={styles.messagesList}
         showsVerticalScrollIndicator={false}
+        onEndReached={loadMoreMessages}
+        onEndReachedThreshold={0.5}
+        ListHeaderComponent={
+          loadingMore ? (
+            <View style={styles.loadMoreContainer}>
+              <ActivityIndicator size="small" color="#FDD835" />
+            </View>
+          ) : null
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyMessages}>
+            <Ionicons name="chatbubbles-outline" size={60} color="#ddd" />
+            <Text style={styles.emptyMessagesText}>Chưa có tin nhắn nào</Text>
+            <Text style={styles.emptyMessagesSubtext}>
+              Gửi tin nhắn đầu tiên để bắt đầu trò chuyện
+            </Text>
+          </View>
+        }
       />
 
       {/* Input Bar */}
@@ -346,11 +311,23 @@ export default function ChatRoomScreen({
           style={styles.quickActions}
           contentContainerStyle={styles.quickActionsContent}
         >
-          <TouchableOpacity style={styles.quickActionButton}>
+          <TouchableOpacity
+            style={styles.quickActionButton}
+            onPress={() => handleQuickAction("👍 OK")}
+          >
             <Text style={styles.quickActionText}>👍 OK</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.quickActionButton}>
-            <Text style={styles.quickActionText}>📍 Chia sẻ vị trí</Text>
+          <TouchableOpacity
+            style={styles.quickActionButton}
+            onPress={() => handleQuickAction("Cảm ơn bạn!")}
+          >
+            <Text style={styles.quickActionText}>🙏 Cảm ơn</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.quickActionButton}
+            onPress={() => handleQuickAction("Sản phẩm còn không?")}
+          >
+            <Text style={styles.quickActionText}>🛍️ Còn hàng?</Text>
           </TouchableOpacity>
         </ScrollView>
 
@@ -378,16 +355,20 @@ export default function ChatRoomScreen({
           <TouchableOpacity
             style={[
               styles.sendButton,
-              !messageInput.trim() && styles.sendButtonDisabled,
+              (!messageInput.trim() || sending) && styles.sendButtonDisabled,
             ]}
-            onPress={sendMessage}
-            disabled={!messageInput.trim()}
+            onPress={handleSendMessage}
+            disabled={!messageInput.trim() || sending}
           >
-            <Ionicons
-              name="send"
-              size={20}
-              color={messageInput.trim() ? "#222" : "#999"}
-            />
+            {sending ? (
+              <ActivityIndicator size="small" color="#222" />
+            ) : (
+              <Ionicons
+                name="send"
+                size={20}
+                color={messageInput.trim() ? "#222" : "#999"}
+              />
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -402,6 +383,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f5f5f5",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f5f5f5",
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: "#666",
   },
   header: {
     flexDirection: "row",
@@ -499,9 +491,47 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#222",
   },
+  errorBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#FFF3E0",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#FFE0B2",
+  },
+  errorText: {
+    flex: 1,
+    fontSize: 13,
+    color: "#FF5722",
+  },
   messagesList: {
     padding: 16,
     paddingBottom: 8,
+    flexGrow: 1,
+  },
+  loadMoreContainer: {
+    paddingVertical: 16,
+    alignItems: "center",
+  },
+  emptyMessages: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 60,
+  },
+  emptyMessagesText: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#666",
+    marginTop: 16,
+  },
+  emptyMessagesSubtext: {
+    fontSize: 14,
+    color: "#999",
+    marginTop: 8,
+    textAlign: "center",
   },
   messageContainer: {
     marginBottom: 12,

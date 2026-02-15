@@ -40,7 +40,7 @@ async function calculateUserStats(userId) {
 exports.createRating = async (req, res) => {
   try {
     const { ratedUserId, conversationId, productId, rating, review } = req.body;
-    const ratingUserId = req.user.id;
+    const ratingUserId = req.user;
 
     // Validation
     if (!ratedUserId || !rating) {
@@ -178,7 +178,7 @@ exports.updateRating = async (req, res) => {
   try {
     const { ratingId } = req.params;
     const { rating, review } = req.body;
-    const userId = req.user.id;
+    const userId = req.user;
 
     // Find rating
     const existingRating = await Rating.findById(ratingId);
@@ -223,7 +223,7 @@ exports.updateRating = async (req, res) => {
 exports.deleteRating = async (req, res) => {
   try {
     const { ratingId } = req.params;
-    const userId = req.user.id;
+    const userId = req.user;
 
     const rating = await Rating.findById(ratingId);
 
@@ -250,7 +250,7 @@ exports.deleteRating = async (req, res) => {
 exports.canRate = async (req, res) => {
   try {
     const { conversationId, userId } = req.params;
-    const currentUserId = req.user.id;
+    const currentUserId = req.user;
 
     // Check if conversation exists and both users are participants
     const conversation = await Conversation.findOne({
@@ -290,7 +290,7 @@ exports.canRate = async (req, res) => {
 
 exports.getMyRatings = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;

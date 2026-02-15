@@ -2,11 +2,12 @@ const Conversation = require("../models/Conversation");
 const Message = require("../models/Message");
 
 function chatSocket(io, socket) {
-  const userId = socket.user.id;
+  const userId = socket.user;
+  console.log("User connected:", userId);
 
   socket.on("sendMessage", async (data) => {
     const { conversationId, content, type = "text" } = data;
-
+    
     try {
       // Validate quyền gửi (user là participant)
       const conv = await Conversation.findById(conversationId);
@@ -46,6 +47,7 @@ function chatSocket(io, socket) {
 
   // Khi user join chat → join room
   socket.on("joinConversation", (convId) => {
+    console.log("User joined conversation:", convId);
     socket.join(convId.toString());
   });
 }

@@ -4,7 +4,7 @@ const Message = require("../models/Message");
 exports.getMessages = async (req, res) => {
   try {
     const { convId } = req.params;
-    const userId = req.user.id;
+    const userId = req.user;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
@@ -22,7 +22,7 @@ exports.getMessages = async (req, res) => {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
-      .populate("sender", "username")
+      .populate("sender", "fullName")
       .lean();
 
     const total = await Message.countDocuments({ conversation: convId });

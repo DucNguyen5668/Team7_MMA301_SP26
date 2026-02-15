@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback, useContext } from "react";
 import {
   View,
   Text,
@@ -8,86 +8,14 @@ import {
   Image,
   StyleSheet,
   StatusBar,
+  ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Conversation } from "../../screens/ChatScreen";
-
-// Mock data with rating information
-const mockConversations: Conversation[] = [
-  {
-    id: 1,
-    opponentName: "Nguyễn Văn A",
-    opponentAvatar: "https://i.pravatar.cc/150?img=12",
-    productImage:
-      "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=400&fit=crop",
-    productTitle: "Đồng hồ nam cao cấp",
-    productPrice: "2.500.000đ",
-    lastMessage: "Sản phẩm còn không bạn?",
-    timestamp: "2 phút",
-    unread: 2,
-    lastMessageTime: new Date(),
-    rating: 4.8,
-    totalRatings: 127,
-    memberSince: "Tháng 3, 2023",
-    responseRate: "98%",
-    responseTime: "~ 5 phút",
-  },
-  {
-    id: 2,
-    opponentName: "Trần Thị B",
-    opponentAvatar: "https://i.pravatar.cc/150?img=25",
-    productImage:
-      "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=400&fit=crop",
-    productTitle: "Tai nghe Bluetooth Sony WH-1000XM5",
-    productPrice: "7.200.000đ",
-    lastMessage: "Bạn có thể giao hàng không?",
-    timestamp: "15 phút",
-    unread: 0,
-    lastMessageTime: new Date(Date.now() - 15 * 60000),
-    rating: 5.0,
-    totalRatings: 89,
-    memberSince: "Tháng 1, 2022",
-    responseRate: "100%",
-    responseTime: "~ 2 phút",
-  },
-  {
-    id: 3,
-    opponentName: "Lê Minh C",
-    opponentAvatar: "https://i.pravatar.cc/150?img=33",
-    productImage:
-      "https://images.unsplash.com/photo-1606813907291-d86efa9b94db?w=400&h=400&fit=crop",
-    productTitle: "Giày thể thao Nike Air Max 270",
-    productPrice: "1.850.000đ",
-    lastMessage: "Cảm ơn bạn nhiều!",
-    timestamp: "1 giờ",
-    unread: 0,
-    lastMessageTime: new Date(Date.now() - 60 * 60000),
-    rating: 4.5,
-    totalRatings: 234,
-    memberSince: "Tháng 8, 2021",
-    responseRate: "95%",
-    responseTime: "~ 10 phút",
-  },
-  {
-    id: 4,
-    opponentName: "Phạm Thị D",
-    opponentAvatar: "https://i.pravatar.cc/150?img=45",
-    productImage:
-      "https://images.unsplash.com/photo-1585386959984-a4155224a1ad?w=400&h=400&fit=crop",
-    productTitle: "Bàn làm việc gỗ sồi",
-    productPrice: "3.200.000đ",
-    lastMessage: "Tôi muốn xem trực tiếp",
-    timestamp: "3 giờ",
-    unread: 1,
-    lastMessageTime: new Date(Date.now() - 3 * 60 * 60000),
-    rating: 4.9,
-    totalRatings: 56,
-    memberSince: "Tháng 11, 2023",
-    responseRate: "99%",
-    responseTime: "~ 3 phút",
-  },
-];
+import { API } from "../../services/api";
+import { AuthContext } from "../../context/authContext";
 
 interface InboxScreenProps {
   onOpenChat: (conversation: Conversation) => void;
@@ -96,10 +24,78 @@ interface InboxScreenProps {
 export default function InboxScreen({ onOpenChat }: InboxScreenProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState<"all" | "unread">("all");
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const unreadCount = mockConversations.filter((c) => c.unread > 0).length;
+  const { user } = useContext(AuthContext);
 
-  const filteredConversations = mockConversations.filter((conv) => {
+  const fetchConversations = async () => {
+    try {
+      setError(null);
+
+      const res = await API.get("/conversations");
+
+      const transformedConversations = res.data.map((conv: any) => {
+        const opponent = conv.participants.find((p: any) => p._id !== user.id);
+
+        return {
+          id: conv._id,
+          opponentName: opponent?.fullName || "Unknown User",
+          opponentAvatar:
+            opponent?.avatar ||
+            `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 70)}`,
+          lastMessage: conv.lastMessage?.content || "",
+          timestamp: formatTimestamp(
+            conv.lastMessage?.createdAt || conv.updatedAt,
+          ),
+          unread: conv.unreadCount || 0,
+        };
+      });
+
+      setConversations(transformedConversations);
+    } catch (err: any) {
+      console.error("Error fetching conversations:", err);
+      setError(err.response?.data?.message || "Failed to load conversations");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const formatTimestamp = (date: string | Date) => {
+    if (!date) return "";
+
+    const now = new Date();
+    const messageDate = new Date(date);
+    const diffMs = now.getTime() - messageDate.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return "Vừa xong";
+    if (diffMins < 60) return `${diffMins} phút`;
+    if (diffHours < 24) return `${diffHours} giờ`;
+    if (diffDays < 7) return `${diffDays} ngày`;
+
+    return messageDate.toLocaleDateString("vi-VN");
+  };
+
+  // Initial load
+  useEffect(() => {
+    fetchConversations();
+  }, []);
+
+  // Refresh handler
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchConversations();
+  }, []);
+
+  const unreadCount = conversations.filter((c) => c.unread > 0).length;
+
+  const filteredConversations = conversations.filter((conv) => {
     const matchesSearch =
       conv.opponentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       conv.productTitle.toLowerCase().includes(searchQuery.toLowerCase());
@@ -131,20 +127,6 @@ export default function InboxScreen({ onOpenChat }: InboxScreenProps) {
           <Text style={styles.timestamp}>{item.timestamp}</Text>
         </View>
 
-        {/* Product Info */}
-        <View style={styles.productInfo}>
-          <Image
-            source={{ uri: item.productImage }}
-            style={styles.productImage}
-          />
-          <View style={styles.productDetails}>
-            <Text style={styles.productTitle} numberOfLines={1}>
-              {item.productTitle}
-            </Text>
-            <Text style={styles.productPrice}>{item.productPrice}</Text>
-          </View>
-        </View>
-
         {/* Last Message */}
         <Text
           style={[
@@ -158,6 +140,45 @@ export default function InboxScreen({ onOpenChat }: InboxScreenProps) {
       </View>
     </TouchableOpacity>
   );
+
+  const renderEmptyState = () => (
+    <View style={styles.emptyState}>
+      <Ionicons name="chatbubbles-outline" size={80} color="#ddd" />
+      <Text style={styles.emptyStateTitle}>Chưa có tin nhắn</Text>
+      <Text style={styles.emptyStateText}>
+        Các cuộc trò chuyện của bạn sẽ xuất hiện ở đây
+      </Text>
+    </View>
+  );
+
+  const renderError = () => (
+    <View style={styles.errorState}>
+      <Ionicons name="alert-circle-outline" size={80} color="#FF5722" />
+      <Text style={styles.errorTitle}>Đã xảy ra lỗi</Text>
+      <Text style={styles.errorText}>{error}</Text>
+      <TouchableOpacity style={styles.retryButton} onPress={fetchConversations}>
+        <Text style={styles.retryButtonText}>Thử lại</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#FDD835" />
+        <Text style={styles.loadingText}>Đang tải tin nhắn...</Text>
+      </View>
+    );
+  }
+
+  if (error && conversations.length === 0) {
+    return (
+      <View style={styles.container}>
+        <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+        {renderError()}
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -191,6 +212,11 @@ export default function InboxScreen({ onOpenChat }: InboxScreenProps) {
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery("")}>
+                <Ionicons name="close-circle" size={18} color="#999" />
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
@@ -242,8 +268,21 @@ export default function InboxScreen({ onOpenChat }: InboxScreenProps) {
         data={filteredConversations}
         renderItem={renderConversation}
         keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={
+          filteredConversations.length === 0
+            ? styles.emptyListContent
+            : styles.listContent
+        }
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#FDD835"]}
+            tintColor="#FDD835"
+          />
+        }
+        ListEmptyComponent={renderEmptyState}
       />
     </View>
   );
@@ -253,6 +292,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#fff",
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: "#666",
   },
   headerGradient: {
     paddingTop: 16,
@@ -342,6 +392,9 @@ const styles = StyleSheet.create({
   listContent: {
     paddingVertical: 8,
   },
+  emptyListContent: {
+    flexGrow: 1,
+  },
   conversationItem: {
     flexDirection: "row",
     padding: 12,
@@ -427,5 +480,53 @@ const styles = StyleSheet.create({
   lastMessageUnread: {
     color: "#222",
     fontWeight: "500",
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 40,
+  },
+  emptyStateTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#222",
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptyStateText: {
+    fontSize: 15,
+    color: "#999",
+    textAlign: "center",
+  },
+  errorState: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 40,
+  },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#222",
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  errorText: {
+    fontSize: 15,
+    color: "#999",
+    textAlign: "center",
+    marginBottom: 24,
+  },
+  retryButton: {
+    backgroundColor: "#FDD835",
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderRadius: 24,
+  },
+  retryButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#222",
   },
 });

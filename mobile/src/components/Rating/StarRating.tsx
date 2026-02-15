@@ -51,7 +51,7 @@ export default function StarRating({
       })}
       {showNumber && (
         <Text style={[styles.ratingNumber, { fontSize: size - 2 }]}>
-          {rating.toFixed(1)}
+          {rating?.toFixed(1)}
         </Text>
       )}
     </View>

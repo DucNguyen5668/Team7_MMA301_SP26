@@ -74,7 +74,10 @@ export default function RatingModal({
             {/* Header */}
             <View style={styles.header}>
               <Text style={styles.headerTitle}>Đánh giá người bán</Text>
-              <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+              <TouchableOpacity
+                onPress={handleClose}
+                style={styles.closeButton}
+              >
                 <Ionicons name="close" size={24} color="#666" />
               </TouchableOpacity>
             </View>
@@ -83,7 +86,7 @@ export default function RatingModal({
             <View style={styles.userInfo}>
               <Image source={{ uri: user.avatar }} style={styles.userAvatar} />
               <View style={styles.userDetails}>
-                <Text style={styles.userName}>{user.name}</Text>
+                <Text style={styles.fullName}>{user.name}</Text>
                 <Text style={styles.productTitle} numberOfLines={1}>
                   {productTitle}
                 </Text>
@@ -200,7 +203,7 @@ const styles = StyleSheet.create({
   userDetails: {
     flex: 1,
   },
-  userName: {
+  fullName: {
     fontSize: 16,
     fontWeight: "600",
     color: "#222",
