@@ -25,6 +25,15 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow access to your photos to send images.",
+          "cameraPermission": "Allow access to your camera."
+        }
+      ]
+    ]
   }
 }

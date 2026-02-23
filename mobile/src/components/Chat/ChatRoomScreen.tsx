@@ -11,10 +11,11 @@ import {
   Platform,
   Modal,
   Pressable,
-  ScrollView,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import {
   Conversation,
   Message,
@@ -37,6 +38,7 @@ export default function ChatRoomScreen({
   const [messageInput, setMessageInput] = useState("");
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [videoPreview, setVideoPreview] = useState<string | null>(null);
 
   const flatListRef = useRef<FlatList>(null);
 
@@ -48,6 +50,7 @@ export default function ChatRoomScreen({
     hasMore,
     error,
     sendMessage,
+    sendImageMessage,
     loadMoreMessages,
   } = useChatMessages({
     conversationId: conversation.id.toString(),
@@ -63,22 +66,100 @@ export default function ChatRoomScreen({
     }
   }, [messages.length]);
 
+  // Request permissions helper
+  const requestPermission = async (
+    type: "camera" | "mediaLibrary",
+  ): Promise<boolean> => {
+    if (type === "camera") {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Cần quyền truy cập",
+          "Vui lòng cho phép ứng dụng truy cập camera trong cài đặt.",
+          [{ text: "OK" }],
+        );
+        return false;
+      }
+    } else {
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Cần quyền truy cập",
+          "Vui lòng cho phép ứng dụng truy cập thư viện ảnh trong cài đặt.",
+          [{ text: "OK" }],
+        );
+        return false;
+      }
+    }
+    return true;
+  };
+
+  // Pick image from gallery
+  const handlePickImage = async () => {
+    setShowAttachMenu(false);
+    const hasPermission = await requestPermission("mediaLibrary");
+    if (!hasPermission) return;
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets.length > 0) {
+      const uri = result.assets[0].uri;
+      // TODO: Upload image to your server/CDN and get URL back,
+      // then call sendImageMessage(uploadedUrl)
+      // For now, sending local URI directly:
+      sendImageMessage(uri);
+    }
+  };
+
+  // Pick video from gallery
+  const handlePickVideo = async () => {
+    setShowAttachMenu(false);
+    const hasPermission = await requestPermission("mediaLibrary");
+    if (!hasPermission) return;
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+      allowsEditing: true,
+      videoMaxDuration: 60, // seconds
+      quality: ImagePicker.UIImagePickerControllerQualityType.Medium,
+    });
+
+    if (!result.canceled && result.assets.length > 0) {
+      const uri = result.assets[0].uri;
+      // TODO: Upload video to your server/CDN and get URL back,
+      // then call sendMessage(uploadedUrl, "video")
+      sendMessage(uri, "video");
+    }
+  };
+
+  // Take photo with camera
+  const handleOpenCamera = async () => {
+    setShowAttachMenu(false);
+    const hasPermission = await requestPermission("camera");
+    if (!hasPermission) return;
+
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets.length > 0) {
+      const uri = result.assets[0].uri;
+      sendImageMessage(uri);
+    }
+  };
+
   // Handle send message
   const handleSendMessage = () => {
     if (messageInput.trim()) {
       sendMessage(messageInput);
       setMessageInput("");
     }
-  };
-
-  // Send quick action message
-  const handleQuickAction = (message: string) => {
-    sendMessage(message);
-  };
-
-  const handleAttach = (type: string) => {
-    setShowAttachMenu(false);
-    console.log("Attach:", type);
   };
 
   const renderMessage = ({ item }: { item: Message }) => {
@@ -110,6 +191,24 @@ export default function ChatRoomScreen({
                 source={{ uri: item.content as string }}
                 style={styles.messageImage}
               />
+            </TouchableOpacity>
+          )}
+
+          {item.type === "video" && (
+            <TouchableOpacity
+              style={styles.videoContainer}
+              onPress={() => setVideoPreview(item.content as string)}
+              activeOpacity={0.9}
+            >
+              <Image
+                source={{ uri: item.content as string }}
+                style={styles.messageImage}
+                blurRadius={2}
+              />
+              <View style={styles.videoPlayButton}>
+                <Ionicons name="play-circle" size={44} color="#fff" />
+              </View>
+              <Text style={styles.videoLabel}>Video</Text>
             </TouchableOpacity>
           )}
 
@@ -146,21 +245,44 @@ export default function ChatRoomScreen({
         onPress={() => setShowAttachMenu(false)}
       >
         <View style={styles.attachMenu}>
-          {[
-            { icon: "image", label: "Ảnh từ thư viện", type: "gallery" },
-            { icon: "camera", label: "Chụp ảnh", type: "camera" },
-            { icon: "videocam", label: "Video", type: "video" },
-            { icon: "location", label: "Vị trí", type: "location" },
-          ].map((item) => (
-            <TouchableOpacity
-              key={item.type}
-              style={styles.attachMenuItem}
-              onPress={() => handleAttach(item.type)}
+          <TouchableOpacity
+            style={styles.attachMenuItem}
+            onPress={handlePickImage}
+          >
+            <View
+              style={[styles.attachIconCircle, { backgroundColor: "#E8F5E9" }]}
             >
-              <Ionicons name={item.icon as any} size={20} color="#666" />
-              <Text style={styles.attachMenuText}>{item.label}</Text>
-            </TouchableOpacity>
-          ))}
+              <Ionicons name="image" size={22} color="#43A047" />
+            </View>
+            <Text style={styles.attachMenuText}>Ảnh</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.attachMenuItem}
+            onPress={handlePickVideo}
+          >
+            <View
+              style={[styles.attachIconCircle, { backgroundColor: "#E3F2FD" }]}
+            >
+              <Ionicons name="videocam" size={22} color="#1E88E5" />
+            </View>
+            <Text style={styles.attachMenuText}>Video</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.attachMenuItem}
+            onPress={() => {
+              setShowAttachMenu(false);
+              // TODO: implement location sharing
+            }}
+          >
+            <View
+              style={[styles.attachIconCircle, { backgroundColor: "#FCE4EC" }]}
+            >
+              <Ionicons name="location" size={22} color="#E53935" />
+            </View>
+            <Text style={styles.attachMenuText}>Vị trí</Text>
+          </TouchableOpacity>
         </View>
       </Pressable>
     </Modal>
@@ -195,7 +317,6 @@ export default function ChatRoomScreen({
     </Modal>
   );
 
-  // Loading state
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -226,15 +347,8 @@ export default function ChatRoomScreen({
             source={{ uri: conversation.opponentAvatar }}
             style={styles.headerAvatar}
           />
-
           <View style={styles.headerInfo}>
             <Text style={styles.headerName}>{conversation.opponentName}</Text>
-            {/* <View style={styles.headerRating}>
-              <StarRating rating={conversation.rating || 0} size={12} />
-              <Text style={styles.headerRatingCount}>
-                ({conversation.totalRatings || 0})
-              </Text>
-            </View> */}
           </View>
         </TouchableOpacity>
 
@@ -242,29 +356,6 @@ export default function ChatRoomScreen({
           <Ionicons name="ellipsis-vertical" size={20} color="#666" />
         </TouchableOpacity>
       </View>
-
-      {/* Product Card */}
-      {/* <LinearGradient
-        colors={["#FFF9E6", "#FFFBF0"]}
-        style={styles.productCard}
-      >
-        <Image
-          source={{ uri: conversation.productImage }}
-          style={styles.productCardImage}
-        />
-        <View style={styles.productCardInfo}>
-          <Text style={styles.productCardTitle} numberOfLines={1}>
-            {conversation.productTitle}
-          </Text>
-          <Text style={styles.productCardPrice}>
-            {conversation.productPrice}
-          </Text>
-        </View>
-        <TouchableOpacity style={styles.productCardButton}>
-          <Ionicons name="open-outline" size={14} color="#222" />
-          <Text style={styles.productCardButtonText}>Xem</Text>
-        </TouchableOpacity>
-      </LinearGradient> */}
 
       {/* Error Message */}
       {error && (
@@ -304,34 +395,6 @@ export default function ChatRoomScreen({
 
       {/* Input Bar */}
       <View style={styles.inputContainer}>
-        {/* Quick Actions */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.quickActions}
-          contentContainerStyle={styles.quickActionsContent}
-        >
-          <TouchableOpacity
-            style={styles.quickActionButton}
-            onPress={() => handleQuickAction("👍 OK")}
-          >
-            <Text style={styles.quickActionText}>👍 OK</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.quickActionButton}
-            onPress={() => handleQuickAction("Cảm ơn bạn!")}
-          >
-            <Text style={styles.quickActionText}>🙏 Cảm ơn</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.quickActionButton}
-            onPress={() => handleQuickAction("Sản phẩm còn không?")}
-          >
-            <Text style={styles.quickActionText}>🛍️ Còn hàng?</Text>
-          </TouchableOpacity>
-        </ScrollView>
-
-        {/* Main Input */}
         <View style={styles.inputBar}>
           <TouchableOpacity
             style={styles.inputIconButton}
@@ -383,6 +446,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f5f5f5",
+  },
+  attachIconCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    justifyContent: "center",
+    alignItems: "center",
   },
   loadingContainer: {
     flex: 1,
@@ -566,6 +636,28 @@ const styles = StyleSheet.create({
     height: 150,
     borderRadius: 12,
   },
+  videoContainer: {
+    position: "relative",
+    width: 220,
+    height: 160,
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  videoPlayButton: {
+    justifyContent: "center",
+    ...StyleSheet.absoluteFillObject,
+
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.25)",
+  },
+  videoLabel: {
+    position: "absolute",
+    bottom: 6,
+    left: 8,
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "600",
+  },
   locationContainer: {
     width: 200,
   },
@@ -625,7 +717,7 @@ const styles = StyleSheet.create({
   },
   inputBar: {
     flexDirection: "row",
-    alignItems: "flex-end",
+    alignItems: "center",
     gap: 8,
   },
   inputIconButton: {
