@@ -39,9 +39,9 @@ export default function InboxScreen({ onOpenChat }: InboxScreenProps) {
 
       const transformedConversations = res.data.map((conv: any) => {
         const opponent = conv.participants.find((p: any) => p._id !== user.id);
-
         return {
           id: conv._id,
+          opponentId: opponent?._id || "",
           opponentName: opponent?.fullName || "Unknown User",
           opponentAvatar:
             opponent?.avatar ||
@@ -82,12 +82,10 @@ export default function InboxScreen({ onOpenChat }: InboxScreenProps) {
     return messageDate.toLocaleDateString("vi-VN");
   };
 
-  // Initial load
   useEffect(() => {
     fetchConversations();
   }, []);
 
-  // Refresh handler
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     fetchConversations();
@@ -96,9 +94,10 @@ export default function InboxScreen({ onOpenChat }: InboxScreenProps) {
   const unreadCount = conversations.filter((c) => c.unread > 0).length;
 
   const filteredConversations = conversations.filter((conv) => {
-    const matchesSearch =
-      conv.opponentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      conv.productTitle.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = conv.opponentName
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
+
     const matchesFilter =
       filter === "all" || (filter === "unread" && conv.unread > 0);
     return matchesSearch && matchesFilter;
@@ -127,7 +126,6 @@ export default function InboxScreen({ onOpenChat }: InboxScreenProps) {
           <Text style={styles.timestamp}>{item.timestamp}</Text>
         </View>
 
-        {/* Last Message */}
         <Text
           style={[
             styles.lastMessage,
@@ -464,10 +462,7 @@ const styles = StyleSheet.create({
   productDetails: {
     flex: 1,
   },
-  productTitle: {
-    fontSize: 13,
-    color: "#666",
-  },
+
   productPrice: {
     fontSize: 13,
     fontWeight: "700",

@@ -10,19 +10,23 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import StarRating from "./StarRating";
+import { API } from "../../services/api";
 
 interface RatingModalProps {
   visible: boolean;
   onClose: () => void;
-  onSubmit: (rating: number, review: string) => void;
+  onSubmitSuccess?: () => void;
   user: {
+    id: string; 
     name: string;
     avatar: string;
   };
-  productTitle: string;
+  conversationId: string;
 }
 
 const ratingLabels = ["", "Rất tệ", "Tệ", "Bình thường", "Tốt", "Xuất sắc"];
@@ -30,24 +34,44 @@ const ratingLabels = ["", "Rất tệ", "Tệ", "Bình thường", "Tốt", "Xu�
 export default function RatingModal({
   visible,
   onClose,
-  onSubmit,
+  onSubmitSuccess,
   user,
-  productTitle,
+  conversationId,
 }: RatingModalProps) {
   const [rating, setRating] = useState(0);
   const [review, setReview] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = () => {
-    if (rating > 0) {
-      onSubmit(rating, review);
+  const handleSubmit = async () => {
+    if (rating === 0 || submitting) return;
+
+    try {
+      setSubmitting(true);
+      await API.post("/ratings", {
+        ratedUserId: user.id,
+        conversationId,
+        rating,
+        review: review.trim(),
+      });
+
       // Reset state
       setRating(0);
       setReview("");
       onClose();
+      onSubmitSuccess?.();
+
+      Alert.alert("Thành công", "Đánh giá của bạn đã được gửi!");
+    } catch (err: any) {
+      const message =
+        err.response?.data?.message || "Không thể gửi đánh giá. Thử lại sau.";
+      Alert.alert("Lỗi", message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleClose = () => {
+    if (submitting) return; // prevent closing while submitting
     setRating(0);
     setReview("");
     onClose();
@@ -77,6 +101,7 @@ export default function RatingModal({
               <TouchableOpacity
                 onPress={handleClose}
                 style={styles.closeButton}
+                disabled={submitting}
               >
                 <Ionicons name="close" size={24} color="#666" />
               </TouchableOpacity>
@@ -87,9 +112,6 @@ export default function RatingModal({
               <Image source={{ uri: user.avatar }} style={styles.userAvatar} />
               <View style={styles.userDetails}>
                 <Text style={styles.fullName}>{user.name}</Text>
-                <Text style={styles.productTitle} numberOfLines={1}>
-                  {productTitle}
-                </Text>
               </View>
             </View>
 
@@ -126,6 +148,7 @@ export default function RatingModal({
                 numberOfLines={4}
                 maxLength={500}
                 textAlignVertical="top"
+                editable={!submitting}
               />
             </View>
 
@@ -133,19 +156,23 @@ export default function RatingModal({
             <TouchableOpacity
               style={[
                 styles.submitButton,
-                rating === 0 && styles.submitButtonDisabled,
+                (rating === 0 || submitting) && styles.submitButtonDisabled,
               ]}
               onPress={handleSubmit}
-              disabled={rating === 0}
+              disabled={rating === 0 || submitting}
             >
-              <Text
-                style={[
-                  styles.submitButtonText,
-                  rating === 0 && styles.submitButtonTextDisabled,
-                ]}
-              >
-                Gửi đánh giá
-              </Text>
+              {submitting ? (
+                <ActivityIndicator size="small" color="#222" />
+              ) : (
+                <Text
+                  style={[
+                    styles.submitButtonText,
+                    rating === 0 && styles.submitButtonTextDisabled,
+                  ]}
+                >
+                  Gửi đánh giá
+                </Text>
+              )}
             </TouchableOpacity>
           </ScrollView>
         </View>
@@ -208,10 +235,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#222",
     marginBottom: 4,
-  },
-  productTitle: {
-    fontSize: 13,
-    color: "#666",
   },
   ratingSection: {
     alignItems: "center",

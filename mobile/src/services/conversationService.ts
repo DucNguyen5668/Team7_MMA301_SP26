@@ -8,8 +8,6 @@ interface User {
   rating?: number;
   totalRatings?: number;
   memberSince?: string;
-  responseRate?: string;
-  responseTime?: string;
 }
 
 export interface MessageBackend {
@@ -39,7 +37,6 @@ export interface ConversationBackend {
   lastMessage?: MessageBackend;
   unreadCount?: number;
   productImage?: string;
-  productTitle?: string;
   productPrice?: string;
 }
 
@@ -47,9 +44,6 @@ export interface Conversation {
   id: number | string;
   opponentName: string;
   opponentAvatar: string;
-  productImage: string;
-  productTitle: string;
-  productPrice: string;
   lastMessage: string;
   timestamp: string;
   unread: number;
@@ -57,8 +51,6 @@ export interface Conversation {
   rating?: number;
   totalRatings?: number;
   memberSince?: string;
-  responseRate?: string;
-  responseTime?: string;
 }
 
 export interface CreateConversationRequest {

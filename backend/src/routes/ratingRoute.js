@@ -11,4 +11,6 @@ router.get("/user/:userId", ratingController.getUserRatings);
 
 router.delete("/:ratingId", ratingController.deleteRating);
 
+router.get("/profile/:userId", ratingController.getRatingProfile);
+
 module.exports = router;

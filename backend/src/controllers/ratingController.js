@@ -1,5 +1,6 @@
 const Rating = require("../models/Rating");
 const Conversation = require("../models/Conversation");
+const User = require("../models/User");
 
 async function calculateUserStats(userId) {
   const ratings = await Rating.find({
@@ -39,7 +40,7 @@ async function calculateUserStats(userId) {
 
 exports.createRating = async (req, res) => {
   try {
-    const { ratedUserId, conversationId, productId, rating, review } = req.body;
+    const { ratedUserId, conversationId, rating, review } = req.body;
     const ratingUserId = req.user;
 
     // Validation
@@ -94,7 +95,6 @@ exports.createRating = async (req, res) => {
       ratedUser: ratedUserId,
       ratingUser: ratingUserId,
       conversation: conversationId,
-      product: productId,
       rating,
       review: review?.trim() || null,
     });
@@ -316,6 +316,76 @@ exports.getMyRatings = async (req, res) => {
     });
   } catch (error) {
     console.error("Get my ratings error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.getRatingProfile = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const user = await User.findById(userId)
+      .select("fullName avatar createdAt")
+      .lean();
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const ratings = await Rating.find({ ratedUser: userId })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate("ratingUser", "fullName avatar")
+      .lean();
+
+    const total = await Rating.countDocuments({ ratedUser: userId });
+
+    const allRatings = await Rating.find({ ratedUser: userId })
+      .select("rating")
+      .lean();
+
+    const sum = allRatings.reduce((acc, r) => acc + r.rating, 0);
+    const averageRating =
+      allRatings.length > 0
+        ? Math.round((sum / allRatings.length) * 10) / 10
+        : 0;
+
+    const distribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+    allRatings.forEach((r) => {
+      distribution[r.rating] = (distribution[r.rating] || 0) + 1;
+    });
+
+    const memberSince = new Date(user.createdAt).toLocaleDateString("vi-VN", {
+      month: "long",
+      year: "numeric",
+    });
+
+    res.json({
+      user: {
+        id: user._id,
+        fullName: user.fullName,
+        avatar: user.avatar || null,
+        memberSince,
+      },
+      stats: {
+        averageRating,
+        totalRatings: total,
+        ratingDistribution: distribution,
+      },
+      ratings,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    console.error("Get user profile error:", error);
     res.status(500).json({ message: error.message });
   }
 };

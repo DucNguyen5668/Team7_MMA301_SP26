@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -6,105 +6,199 @@ import {
   TouchableOpacity,
   Image,
   StyleSheet,
+  ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import StarRating from "./StarRating";
+import RatingModal from "./RatingModal";
+import { API } from "../../services/api";
 
 interface Review {
-  id: number;
-  reviewerName: string;
-  reviewerAvatar: string;
+  _id: string;
+  ratingUser: {
+    _id: string;
+    fullName: string;
+    avatar: string;
+  };
   rating: number;
-  comment: string;
-  timestamp: string;
-  productTitle: string;
+  review: string;
+  createdAt: string;
+}
+
+interface RatingDistributionItem {
+  stars: number;
+  count: number;
+  percentage: number;
+}
+
+interface ProfileData {
+  user: {
+    id: string;
+    fullName: string;
+    avatar: string;
+    memberSince: string;
+  };
+  stats: {
+    averageRating: number;
+    totalRatings: number;
+    ratingDistribution: Record<number, number>;
+  };
+  ratings: Review[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 }
 
 interface ProfileScreenProps {
-  user: {
-    name: string;
-    avatar: string;
-    rating: number;
-    totalRatings: number;
-    memberSince: string;
-    responseRate: string;
-    responseTime: string;
-  };
+  opponentId: string;
+  opponentName: string;  // used as fallback while loading
+  opponentAvatar: string; // used as fallback while loading
+  conversationId: string;
   onBack: () => void;
-  onOpenRatingModal: () => void;
 }
 
-const mockRatings: Review[] = [
-  {
-    id: 1,
-    reviewerName: "Hoàng Thị E",
-    reviewerAvatar: "https://i.pravatar.cc/150?img=20",
-    rating: 5,
-    comment:
-      "Người bán rất nhiệt tình và chu đáo. Sản phẩm đúng như mô tả. Rất hài lòng!",
-    timestamp: "2 ngày trước",
-    productTitle: "iPhone 14 Pro Max",
-  },
-  {
-    id: 2,
-    reviewerName: "Đỗ Văn F",
-    reviewerAvatar: "https://i.pravatar.cc/150?img=52",
-    rating: 5,
-    comment: "Giao hàng nhanh, đóng gói cẩn thận. Sẽ ủng hộ lâu dài.",
-    timestamp: "1 tuần trước",
-    productTitle: "Laptop Dell XPS 13",
-  },
-  {
-    id: 3,
-    reviewerName: "Vũ Thị G",
-    reviewerAvatar: "https://i.pravatar.cc/150?img=38",
-    rating: 4,
-    comment: "Sản phẩm tốt, giá hợp lý. Nhưng hơi lâu phản hồi.",
-    timestamp: "2 tuần trước",
-    productTitle: "Máy ảnh Canon EOS R6",
-  },
-  {
-    id: 4,
-    reviewerName: "Bùi Minh H",
-    reviewerAvatar: "https://i.pravatar.cc/150?img=61",
-    rating: 5,
-    comment: "Shop uy tín, giao dịch nhanh gọn. Highly recommended!",
-    timestamp: "3 tuần trước",
-    productTitle: "Apple Watch Series 8",
-  },
-  {
-    id: 5,
-    reviewerName: "Ngô Thị I",
-    reviewerAvatar: "https://i.pravatar.cc/150?img=47",
-    rating: 5,
-    comment: "Rất hài lòng về chất lượng sản phẩm và thái độ phục vụ.",
-    timestamp: "1 tháng trước",
-    productTitle: "Samsung Galaxy S23 Ultra",
-  },
-  {
-    id: 6,
-    reviewerName: "Đinh Văn K",
-    reviewerAvatar: "https://i.pravatar.cc/150?img=68",
-    rating: 4,
-    comment: "Tốt, nhưng có thể cải thiện thời gian phản hồi.",
-    timestamp: "1 tháng trước",
-    productTitle: "iPad Air 2023",
-  },
-];
-
-const ratingDistribution = [
-  { stars: 5, count: 89, percentage: 70 },
-  { stars: 4, count: 28, percentage: 22 },
-  { stars: 3, count: 7, percentage: 6 },
-  { stars: 2, count: 2, percentage: 1.5 },
-  { stars: 1, count: 1, percentage: 0.5 },
-];
-
 export default function ProfileScreen({
-  user,
+  opponentId,
+  opponentName,
+  opponentAvatar,
+  conversationId,
   onBack,
-  onOpenRatingModal,
 }: ProfileScreenProps) {
+  const [profileData, setProfileData] = useState<ProfileData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [showRatingModal, setShowRatingModal] = useState(false);
+
+  const fetchProfile = async (page = 1, append = false) => {
+    try {
+      setError(null);
+      const res = await API.get(`/ratings/profile/${opponentId}?page=${page}&limit=10`);
+      const data: ProfileData = res.data;
+
+      if (append && profileData) {
+        setProfileData({
+          ...data,
+          ratings: [...profileData.ratings, ...data.ratings],
+        });
+      } else {
+        setProfileData(data);
+      }
+      setCurrentPage(page);
+    } catch (err: any) {
+      console.error("Error fetching profile:", err);
+      setError(err.response?.data?.message || "Không thể tải hồ sơ người dùng");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+      setLoadingMore(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProfile(1);
+  }, [opponentId]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchProfile(1);
+  }, [opponentId]);
+
+  const handleLoadMore = () => {
+    if (
+      !loadingMore &&
+      profileData &&
+      currentPage < profileData.pagination.totalPages
+    ) {
+      setLoadingMore(true);
+      fetchProfile(currentPage + 1, true);
+    }
+  };
+
+  const formatTimestamp = (dateStr: string) => {
+    if (!dateStr) return "";
+    const now = new Date();
+    const date = new Date(dateStr);
+    const diffMs = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffDays === 0) return "Hôm nay";
+    if (diffDays === 1) return "Hôm qua";
+    if (diffDays < 7) return `${diffDays} ngày trước`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} tuần trước`;
+    if (diffDays < 365) return `${Math.floor(diffDays / 30)} tháng trước`;
+    return `${Math.floor(diffDays / 365)} năm trước`;
+  };
+
+  // Convert distribution object to array for rendering
+  const getRatingDistributionArray = (): RatingDistributionItem[] => {
+    if (!profileData) return [];
+    const dist = profileData.stats.ratingDistribution;
+    const total = profileData.stats.totalRatings;
+
+    return [5, 4, 3, 2, 1].map((stars) => {
+      const count = dist[stars] || 0;
+      const percentage = total > 0 ? (count / total) * 100 : 0;
+      return { stars, count, percentage };
+    });
+  };
+
+  // ─── Loading state ───────────────────────────────────────────────────────────
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        {/* Header with fallback name */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={onBack} style={styles.backButton}>
+            <Ionicons name="chevron-back" size={24} color="#222" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Hồ sơ người dùng</Text>
+          <View style={{ width: 40 }} />
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#FDD835" />
+          <Text style={styles.loadingText}>Đang tải hồ sơ...</Text>
+        </View>
+      </View>
+    );
+  }
+
+  // ─── Error state ─────────────────────────────────────────────────────────────
+  if (error && !profileData) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={onBack} style={styles.backButton}>
+            <Ionicons name="chevron-back" size={24} color="#222" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Hồ sơ người dùng</Text>
+          <View style={{ width: 40 }} />
+        </View>
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle-outline" size={64} color="#FF5722" />
+          <Text style={styles.errorTitle}>Đã xảy ra lỗi</Text>
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={() => fetchProfile(1)}
+          >
+            <Text style={styles.retryButtonText}>Thử lại</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  const distArray = getRatingDistributionArray();
+  const displayAvatar = profileData?.user.avatar || opponentAvatar;
+  const displayName = profileData?.user.fullName || opponentName;
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -116,93 +210,146 @@ export default function ProfileScreen({
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#FDD835"]}
+            tintColor="#FDD835"
+          />
+        }
+        onScrollEndDrag={({ nativeEvent }) => {
+          const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
+          const isCloseToBottom =
+            layoutMeasurement.height + contentOffset.y >= contentSize.height - 80;
+          if (isCloseToBottom) handleLoadMore();
+        }}
+      >
         {/* Profile Info */}
         <View style={styles.profileSection}>
-          <Image source={{ uri: user.avatar }} style={styles.avatar} />
-          <Text style={styles.fullName}>{user.name}</Text>
+          <Image source={{ uri: displayAvatar }} style={styles.avatar} />
+          <Text style={styles.fullName}>{displayName}</Text>
+
           <View style={styles.ratingContainer}>
-            <StarRating rating={user.rating} size={20} showNumber={true} />
+            <StarRating
+              rating={profileData?.stats.averageRating || 0}
+              size={20}
+              showNumber={true}
+            />
           </View>
-          <Text style={styles.totalRatings}>{user.totalRatings} đánh giá</Text>
-          <Text style={styles.memberSince}>Tham gia {user.memberSince}</Text>
+
+          <Text style={styles.totalRatings}>
+            {profileData?.stats.totalRatings || 0} đánh giá
+          </Text>
+
+          {profileData?.user.memberSince && (
+            <Text style={styles.memberSince}>
+              Tham gia {profileData.user.memberSince}
+            </Text>
+          )}
 
           <TouchableOpacity
             style={styles.rateButton}
-            onPress={onOpenRatingModal}
+            onPress={() => setShowRatingModal(true)}
           >
             <Text style={styles.rateButtonText}>⭐ Đánh giá người bán</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Stats */}
-        <View style={styles.statsSection}>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{user.responseRate}</Text>
-            <Text style={styles.statLabel}>Tỷ lệ phản hồi</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{user.responseTime}</Text>
-            <Text style={styles.statLabel}>Thời gian phản hồi</Text>
-          </View>
-        </View>
-
         {/* Rating Distribution */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Phân bố đánh giá</Text>
-          {ratingDistribution.map((item) => (
-            <View key={item.stars} style={styles.distributionRow}>
-              <View style={styles.distributionLabel}>
-                <Text style={styles.distributionStars}>{item.stars}</Text>
-                <Ionicons name="star" size={14} color="#FDD835" />
+        {profileData && profileData.stats.totalRatings > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Phân bố đánh giá</Text>
+            {distArray.map((item) => (
+              <View key={item.stars} style={styles.distributionRow}>
+                <View style={styles.distributionLabel}>
+                  <Text style={styles.distributionStars}>{item.stars}</Text>
+                  <Ionicons name="star" size={14} color="#FDD835" />
+                </View>
+                <View style={styles.distributionBarContainer}>
+                  <View
+                    style={[
+                      styles.distributionBar,
+                      { width: `${item.percentage}%` },
+                    ]}
+                  />
+                </View>
+                <Text style={styles.distributionCount}>{item.count}</Text>
               </View>
-              <View style={styles.distributionBarContainer}>
-                <View
-                  style={[
-                    styles.distributionBar,
-                    { width: `${item.percentage}%` },
-                  ]}
-                />
-              </View>
-              <Text style={styles.distributionCount}>{item.count}</Text>
-            </View>
-          ))}
-        </View>
+            ))}
+          </View>
+        )}
 
         {/* Reviews List */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Đánh giá gần đây</Text>
-          {mockRatings.map((review) => (
-            <View key={review.id} style={styles.reviewItem}>
-              <View style={styles.reviewHeader}>
-                <Image
-                  source={{ uri: review.reviewerAvatar }}
-                  style={styles.reviewerAvatar}
-                />
-                <View style={styles.reviewerInfo}>
-                  <View style={styles.reviewerTop}>
-                    <View>
-                      <Text style={styles.reviewerName}>
-                        {review.reviewerName}
+
+          {profileData?.ratings.length === 0 ? (
+            <View style={styles.emptyReviews}>
+              <Ionicons name="star-outline" size={48} color="#ddd" />
+              <Text style={styles.emptyReviewsText}>Chưa có đánh giá nào</Text>
+            </View>
+          ) : (
+            profileData?.ratings.map((review) => (
+              <View key={review._id} style={styles.reviewItem}>
+                <View style={styles.reviewHeader}>
+                  <Image
+                    source={{ uri: review.ratingUser?.avatar || `https://i.pravatar.cc/150?img=1` }}
+                    style={styles.reviewerAvatar}
+                  />
+                  <View style={styles.reviewerInfo}>
+                    <View style={styles.reviewerTop}>
+                      <View>
+                        <Text style={styles.reviewerName}>
+                          {review.ratingUser?.fullName || "Người dùng"}
+                        </Text>
+                        <StarRating rating={review.rating} size={14} />
+                      </View>
+                      <Text style={styles.reviewTimestamp}>
+                        {formatTimestamp(review.createdAt)}
                       </Text>
-                      <StarRating rating={review.rating} size={14} />
                     </View>
-                    <Text style={styles.reviewTimestamp}>
-                      {review.timestamp}
-                    </Text>
-                  </View>
-                  <Text style={styles.reviewComment}>{review.comment}</Text>
-                  <View style={styles.reviewProduct}>
-                    <Text style={styles.reviewProductText}>
-                      Sản phẩm: {review.productTitle}
-                    </Text>
+                    {review.review ? (
+                      <Text style={styles.reviewComment}>{review.review}</Text>
+                    ) : null}
                   </View>
                 </View>
               </View>
+            ))
+          )}
+
+          {/* Load more indicator */}
+          {loadingMore && (
+            <View style={styles.loadMoreContainer}>
+              <ActivityIndicator size="small" color="#FDD835" />
             </View>
-          ))}
+          )}
+
+          {/* All loaded indicator */}
+          {profileData &&
+            currentPage >= profileData.pagination.totalPages &&
+            profileData.ratings.length > 0 && (
+              <Text style={styles.allLoadedText}>Đã hiển thị tất cả đánh giá</Text>
+            )}
         </View>
       </ScrollView>
+
+      <RatingModal
+        visible={showRatingModal}
+        onClose={() => setShowRatingModal(false)}
+        onSubmitSuccess={() => {
+          setShowRatingModal(false);
+          fetchProfile(1);
+        }}
+        user={{
+          id: opponentId,
+          name: displayName,
+          avatar: displayAvatar,
+        }}
+        conversationId={conversationId}
+      />
     </View>
   );
 }
@@ -211,6 +358,46 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f5f5f5",
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 15,
+    color: "#666",
+  },
+  errorContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 32,
+  },
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#222",
+    marginTop: 16,
+  },
+  errorText: {
+    fontSize: 14,
+    color: "#666",
+    marginTop: 8,
+    textAlign: "center",
+  },
+  retryButton: {
+    marginTop: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    backgroundColor: "#FDD835",
+    borderRadius: 12,
+  },
+  retryButtonText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#222",
   },
   header: {
     flexDirection: "row",
@@ -223,31 +410,32 @@ const styles = StyleSheet.create({
     borderBottomColor: "#e8e8e8",
   },
   backButton: {
-    padding: 8,
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "600",
     color: "#222",
   },
   profileSection: {
-    backgroundColor: "#fff",
-    paddingVertical: 24,
-    paddingHorizontal: 16,
     alignItems: "center",
-    borderBottomWidth: 8,
-    borderBottomColor: "#f5f5f5",
+    padding: 24,
+    backgroundColor: "#fff",
+    marginBottom: 12,
   },
   avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    borderWidth: 4,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    borderWidth: 3,
     borderColor: "#FDD835",
-    marginBottom: 16,
+    marginBottom: 12,
   },
   fullName: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: "700",
     color: "#222",
     marginBottom: 8,
@@ -256,109 +444,86 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   totalRatings: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 16,
+    fontSize: 13,
+    color: "#888",
+    marginBottom: 4,
   },
   memberSince: {
     fontSize: 13,
-    color: "#999",
-    marginBottom: 20,
+    color: "#888",
+    marginBottom: 16,
   },
   rateButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 24,
     backgroundColor: "#FDD835",
-    paddingHorizontal: 32,
-    paddingVertical: 12,
     borderRadius: 24,
   },
   rateButtonText: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "600",
     color: "#222",
-  },
-  statsSection: {
-    flexDirection: "row",
-    gap: 16,
-    padding: 16,
-    backgroundColor: "#fff",
-    borderBottomWidth: 8,
-    borderBottomColor: "#f5f5f5",
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: "#FFF9E6",
-    padding: 16,
-    borderRadius: 12,
-    alignItems: "center",
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#222",
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 13,
-    color: "#666",
-    textAlign: "center",
   },
   section: {
     backgroundColor: "#fff",
     padding: 16,
-    borderBottomWidth: 8,
-    borderBottomColor: "#f5f5f5",
+    marginBottom: 12,
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "700",
     color: "#222",
     marginBottom: 16,
   },
   distributionRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 10,
   },
   distributionLabel: {
     flexDirection: "row",
     alignItems: "center",
-    width: 80,
-    gap: 4,
+    width: 32,
+    gap: 2,
   },
   distributionStars: {
-    fontSize: 14,
+    fontSize: 13,
     color: "#666",
+    fontWeight: "500",
   },
   distributionBarContainer: {
     flex: 1,
     height: 8,
     backgroundColor: "#f0f0f0",
     borderRadius: 4,
+    marginHorizontal: 10,
     overflow: "hidden",
   },
   distributionBar: {
     height: "100%",
     backgroundColor: "#FDD835",
+    borderRadius: 4,
   },
   distributionCount: {
-    fontSize: 13,
-    color: "#999",
-    width: 40,
+    width: 28,
+    fontSize: 12,
+    color: "#888",
     textAlign: "right",
   },
   reviewItem: {
-    paddingVertical: 16,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: "#f0f0f0",
   },
   reviewHeader: {
     flexDirection: "row",
-    gap: 12,
+    alignItems: "flex-start",
   },
   reviewerAvatar: {
     width: 40,
     height: 40,
     borderRadius: 20,
+    marginRight: 12,
   },
   reviewerInfo: {
     flex: 1,
@@ -370,10 +535,10 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   reviewerName: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "600",
     color: "#222",
-    marginBottom: 4,
+    marginBottom: 3,
   },
   reviewTimestamp: {
     fontSize: 12,
@@ -381,19 +546,27 @@ const styles = StyleSheet.create({
   },
   reviewComment: {
     fontSize: 14,
-    color: "#444",
+    color: "#555",
     lineHeight: 20,
-    marginBottom: 8,
+    marginTop: 4,
   },
-  reviewProduct: {
-    backgroundColor: "#f5f5f5",
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 6,
-    alignSelf: "flex-start",
+  emptyReviews: {
+    alignItems: "center",
+    paddingVertical: 32,
   },
-  reviewProductText: {
+  emptyReviewsText: {
+    fontSize: 15,
+    color: "#aaa",
+    marginTop: 12,
+  },
+  loadMoreContainer: {
+    paddingVertical: 16,
+    alignItems: "center",
+  },
+  allLoadedText: {
+    textAlign: "center",
     fontSize: 13,
-    color: "#999",
+    color: "#bbb",
+    paddingVertical: 16,
   },
 });

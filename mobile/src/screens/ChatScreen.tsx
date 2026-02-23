@@ -3,28 +3,22 @@ import { View, StyleSheet } from "react-native";
 import InboxScreen from "../components/Chat/InboxScreen";
 import ChatRoomScreen from "../components/Chat/ChatRoomScreen";
 import ProfileScreen from "../components/Rating/ProfileScreen";
-import RatingModal from "../components/Rating/RatingModal";
 
 export interface Conversation {
-  id: number;
+  id: string;
+  opponentId: string; 
   opponentName: string;
   opponentAvatar: string;
   productImage: string;
-  productTitle: string;
   productPrice: string;
   lastMessage: string;
   timestamp: string;
   unread: number;
   lastMessageTime: Date;
-  rating: number;
-  totalRatings: number;
-  memberSince: string;
-  responseRate: string;
-  responseTime: string;
 }
 
 export interface Message {
-  id: number;
+  id: string;
   sender: "opponent" | "me";
   type: "text" | "image" | "location";
   content: string | { lat: number; lng: number; address: string };
@@ -37,11 +31,9 @@ export default function ChatScreen() {
   >("inbox");
   const [selectedConversation, setSelectedConversation] =
     useState<Conversation | null>(null);
-  const [showRatingModal, setShowRatingModal] = useState(false);
-
   const openChat = (conversation: Conversation) => {
     setSelectedConversation(conversation);
-    console.log('selectedConversation', conversation)
+    console.log("selectedConversation", conversation);
     setCurrentScreen("chat");
   };
 
@@ -58,19 +50,12 @@ export default function ChatScreen() {
     setCurrentScreen("chat");
   };
 
-  const handleRatingSubmit = (rating: number, review: string) => {
-    console.log("Rating submitted:", { rating, review });
-    // In real app, send to backend
-    // You can add API call here
-  };
-
   return (
     <View style={styles.container}>
       {currentScreen === "inbox" && <InboxScreen onOpenChat={openChat} />}
-      
+
       {currentScreen === "chat" && selectedConversation && (
         <ChatRoomScreen
-          
           conversation={selectedConversation}
           onBack={backToInbox}
           onViewProfile={openProfile}
@@ -79,32 +64,14 @@ export default function ChatScreen() {
 
       {currentScreen === "profile" && selectedConversation && (
         <ProfileScreen
-          user={{
-            name: selectedConversation.opponentName,
-            avatar: selectedConversation.opponentAvatar,
-            rating: selectedConversation.rating,
-            totalRatings: selectedConversation.totalRatings,
-            memberSince: selectedConversation.memberSince,
-            responseRate: selectedConversation.responseRate,
-            responseTime: selectedConversation.responseTime,
-          }}
+          opponentId={selectedConversation.opponentId}
+          opponentName={selectedConversation.opponentName}
+          opponentAvatar={selectedConversation.opponentAvatar}
+          conversationId={selectedConversation.id.toString()}
           onBack={backToChat}
-          onOpenRatingModal={() => setShowRatingModal(true)}
         />
       )}
 
-      {selectedConversation && (
-        <RatingModal
-          visible={showRatingModal}
-          onClose={() => setShowRatingModal(false)}
-          onSubmit={handleRatingSubmit}
-          user={{
-            name: selectedConversation.opponentName,
-            avatar: selectedConversation.opponentAvatar,
-          }}
-          productTitle={selectedConversation.productTitle}
-        />
-      )}
     </View>
   );
 }

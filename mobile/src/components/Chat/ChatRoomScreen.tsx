@@ -268,21 +268,6 @@ export default function ChatRoomScreen({
             </View>
             <Text style={styles.attachMenuText}>Video</Text>
           </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.attachMenuItem}
-            onPress={() => {
-              setShowAttachMenu(false);
-              // TODO: implement location sharing
-            }}
-          >
-            <View
-              style={[styles.attachIconCircle, { backgroundColor: "#FCE4EC" }]}
-            >
-              <Ionicons name="location" size={22} color="#E53935" />
-            </View>
-            <Text style={styles.attachMenuText}>Vị trí</Text>
-          </TouchableOpacity>
         </View>
       </Pressable>
     </Modal>
