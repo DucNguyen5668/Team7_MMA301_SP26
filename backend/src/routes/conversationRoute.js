@@ -8,5 +8,6 @@ router.use(authenticate);
 router.get("/", conversationController.getConversations);
 router.get("/:id", conversationController.getConversationById);
 router.post("/", conversationController.createOrGetPrivateConversation);
+router.put("/:convId/read", conversationController.markAsRead);
 
 module.exports = router;
