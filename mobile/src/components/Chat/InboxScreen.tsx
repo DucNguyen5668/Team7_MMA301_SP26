@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useCallback, useContext } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useContext,
+  useRef,
+} from "react";
 import {
   View,
   Text,
@@ -13,9 +19,13 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { io, Socket } from "socket.io-client";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Conversation } from "../../screens/ChatScreen";
 import { API } from "../../services/api";
 import { AuthContext } from "../../context/authContext";
+
+const SOCKET_URL = "http://192.168.9.101:5000"; // Update with your backend URL
 
 interface InboxScreenProps {
   onOpenChat: (conversation: Conversation) => void;
@@ -30,14 +40,15 @@ export default function InboxScreen({ onOpenChat }: InboxScreenProps) {
   const [error, setError] = useState<string | null>(null);
 
   const { user } = useContext(AuthContext);
+  const socketRef = useRef<Socket | null>(null);
 
+  // ─── Fetch conversations from REST API ──────────────────────────────────────
   const fetchConversations = async () => {
     try {
       setError(null);
-
       const res = await API.get("/conversations");
 
-      const transformedConversations = res.data.map((conv: any) => {
+      const transformed = res.data.map((conv: any) => {
         const opponent = conv.participants.find((p: any) => p._id !== user.id);
         return {
           id: conv._id,
@@ -54,7 +65,7 @@ export default function InboxScreen({ onOpenChat }: InboxScreenProps) {
         };
       });
 
-      setConversations(transformedConversations);
+      setConversations(transformed);
     } catch (err: any) {
       console.error("Error fetching conversations:", err);
       setError(err.response?.data?.message || "Failed to load conversations");
@@ -64,9 +75,82 @@ export default function InboxScreen({ onOpenChat }: InboxScreenProps) {
     }
   };
 
+  // ─── Socket: listen for live unread badge updates ───────────────────────────
+  const connectSocket = async () => {
+    const token = await AsyncStorage.getItem("token");
+
+    const socket = io(SOCKET_URL, {
+      auth: { token },
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+    });
+
+    socketRef.current = socket;
+
+    socket.on("connect", () => {
+      console.log("InboxScreen socket connected");
+      // Personal room (user:${userId}) is joined server-side automatically
+    });
+
+    socket.on("connect_error", (err) => {
+      console.error("InboxScreen socket error:", err);
+    });
+
+    // ── New message from someone → increment that conversation's unread badge ─
+    socket.on(
+      "unreadUpdate",
+      ({
+        conversationId,
+        unreadCount,
+      }: {
+        conversationId: string;
+        unreadCount: number;
+      }) => {
+        setConversations((prev) =>
+          prev.map((conv) =>
+            conv.id.toString() === conversationId.toString()
+              ? { ...conv, unread: unreadCount }
+              : conv,
+          ),
+        );
+      },
+    );
+
+    // ── We opened a chat room → server marked as read → reset badge to 0 ─────
+    socket.on(
+      "markedAsRead",
+      ({ conversationId }: { conversationId: string }) => {
+        setConversations((prev) =>
+          prev.map((conv) =>
+            conv.id.toString() === conversationId.toString()
+              ? { ...conv, unread: 0 }
+              : conv,
+          ),
+        );
+      },
+    );
+
+    return () => {
+      socket.disconnect();
+    };
+  };
+
+  useEffect(() => {
+    fetchConversations();
+    const cleanup = connectSocket();
+    return () => {
+      cleanup.then((fn) => fn?.());
+    };
+  }, []);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchConversations();
+  }, []);
+
   const formatTimestamp = (date: string | Date) => {
     if (!date) return "";
-
     const now = new Date();
     const messageDate = new Date(date);
     const diffMs = now.getTime() - messageDate.getTime();
@@ -78,18 +162,8 @@ export default function InboxScreen({ onOpenChat }: InboxScreenProps) {
     if (diffMins < 60) return `${diffMins} phút`;
     if (diffHours < 24) return `${diffHours} giờ`;
     if (diffDays < 7) return `${diffDays} ngày`;
-
     return messageDate.toLocaleDateString("vi-VN");
   };
-
-  useEffect(() => {
-    fetchConversations();
-  }, []);
-
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    fetchConversations();
-  }, []);
 
   const unreadCount = conversations.filter((c) => c.unread > 0).length;
 
@@ -97,7 +171,6 @@ export default function InboxScreen({ onOpenChat }: InboxScreenProps) {
     const matchesSearch = conv.opponentName
       .toLowerCase()
       .includes(searchQuery.toLowerCase());
-
     const matchesFilter =
       filter === "all" || (filter === "unread" && conv.unread > 0);
     return matchesSearch && matchesFilter;
@@ -114,7 +187,9 @@ export default function InboxScreen({ onOpenChat }: InboxScreenProps) {
         <Image source={{ uri: item.opponentAvatar }} style={styles.avatar} />
         {item.unread > 0 && (
           <View style={styles.unreadBadge}>
-            <Text style={styles.unreadBadgeText}>{item.unread}</Text>
+            <Text style={styles.unreadBadgeText}>
+              {item.unread > 99 ? "99+" : item.unread}
+            </Text>
           </View>
         )}
       </View>
@@ -122,7 +197,14 @@ export default function InboxScreen({ onOpenChat }: InboxScreenProps) {
       {/* Content */}
       <View style={styles.conversationContent}>
         <View style={styles.conversationHeader}>
-          <Text style={styles.opponentName}>{item.opponentName}</Text>
+          <Text
+            style={[
+              styles.opponentName,
+              item.unread > 0 && styles.opponentNameUnread,
+            ]}
+          >
+            {item.opponentName}
+          </Text>
           <Text style={styles.timestamp}>{item.timestamp}</Text>
         </View>
 
@@ -285,7 +367,6 @@ export default function InboxScreen({ onOpenChat }: InboxScreenProps) {
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -447,6 +528,10 @@ const styles = StyleSheet.create({
   timestamp: {
     fontSize: 12,
     color: "#999",
+  },
+  opponentNameUnread: {
+    fontWeight: "700",
+    color: "#222",
   },
   productInfo: {
     flexDirection: "row",
