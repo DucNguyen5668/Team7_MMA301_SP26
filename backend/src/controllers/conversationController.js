@@ -4,6 +4,7 @@ const Message = require("../models/Message");
 exports.getConversations = async (req, res) => {
   try {
     const userId = req.user;
+    const { filter, search } = req.query;
 
     const conversations = await Conversation.find({ participants: userId })
       .populate("participants", "fullName avatar")
@@ -11,23 +12,46 @@ exports.getConversations = async (req, res) => {
       .sort({ updatedAt: -1 })
       .lean();
 
-    // For each conversation, count messages not read by current user
-    const withUnread = await Promise.all(
+    let result = await Promise.all(
       conversations.map(async (conv) => {
         const unreadCount = await Message.countDocuments({
           conversation: conv._id,
           sender: { $ne: userId },
           readBy: { $nin: [userId] },
         });
-        return { ...conv, unreadCount };
+
+        const opponent = conv.participants.find(
+          (p) => p._id.toString() !== userId.toString(),
+        );
+
+        return {
+          _id: conv._id,
+          opponent: opponent || null,
+          lastMessage: conv.lastMessage || null,
+          updatedAt: conv.updatedAt,
+          unreadCount,
+        };
       }),
     );
 
-    res.json(withUnread);
+    if (filter === "unread") {
+      result = result.filter((c) => c.unreadCount > 0);
+    }
+
+    if (search) {
+      const q = search.toLowerCase();
+      result = result.filter((c) =>
+        c.opponent?.fullName?.toLowerCase().includes(q),
+      );
+    }
+
+    res.json(result);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+
+
 
 exports.getConversationById = async (req, res) => {
   try {

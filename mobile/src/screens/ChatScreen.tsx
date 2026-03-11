@@ -3,7 +3,7 @@ import { View, StyleSheet } from "react-native";
 import InboxScreen from "../components/Chat/InboxScreen";
 import ChatRoomScreen from "../components/Chat/ChatRoomScreen";
 import ProfileScreen from "../components/Rating/ProfileScreen";
-import { Conversation } from "../hooks/useChatMessages";
+import { Conversation } from "../types/message";
 
 export default function ChatScreen() {
   const [currentScreen, setCurrentScreen] = useState<
