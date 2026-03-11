@@ -21,11 +21,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { io, Socket } from "socket.io-client";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Conversation } from "../../screens/ChatScreen";
 import { API } from "../../services/api";
 import { AuthContext } from "../../context/authContext";
+import { IP_ADDRESS } from "../../constants/ip";
+import { Conversation } from "../../types/message";
 
-const SOCKET_URL = "http://192.168.9.101:5000"; // Update with your backend URL
+const SOCKET_URL = `http://${IP_ADDRESS}:5000`;
 
 interface InboxScreenProps {
   onOpenChat: (conversation: Conversation) => void;

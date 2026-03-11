@@ -22,6 +22,7 @@ import {
   useChatMessages,
 } from "../../hooks/useChatMessages";
 import { AuthContext } from "../../context/authContext";
+import { requestPermission } from "../../utils/permissions";
 
 interface ChatRoomScreenProps {
   conversation: Conversation;
@@ -66,35 +67,6 @@ export default function ChatRoomScreen({
     }
   }, [messages.length]);
 
-  // Request permissions helper
-  const requestPermission = async (
-    type: "camera" | "mediaLibrary",
-  ): Promise<boolean> => {
-    if (type === "camera") {
-      const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert(
-          "Cần quyền truy cập",
-          "Vui lòng cho phép ứng dụng truy cập camera trong cài đặt.",
-          [{ text: "OK" }],
-        );
-        return false;
-      }
-    } else {
-      const { status } =
-        await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert(
-          "Cần quyền truy cập",
-          "Vui lòng cho phép ứng dụng truy cập thư viện ảnh trong cài đặt.",
-          [{ text: "OK" }],
-        );
-        return false;
-      }
-    }
-    return true;
-  };
-
   // Pick image from gallery
   const handlePickImage = async () => {
     setShowAttachMenu(false);
@@ -102,7 +74,7 @@ export default function ChatRoomScreen({
     if (!hasPermission) return;
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: "images",
       allowsEditing: true,
       quality: 0.8,
     });
@@ -110,8 +82,6 @@ export default function ChatRoomScreen({
     if (!result.canceled && result.assets.length > 0) {
       const uri = result.assets[0].uri;
       // TODO: Upload image to your server/CDN and get URL back,
-      // then call sendImageMessage(uploadedUrl)
-      // For now, sending local URI directly:
       sendImageMessage(uri);
     }
   };
@@ -123,9 +93,9 @@ export default function ChatRoomScreen({
     if (!hasPermission) return;
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+      mediaTypes: "videos",
       allowsEditing: true,
-      videoMaxDuration: 60, // seconds
+      videoMaxDuration: 60,
       quality: ImagePicker.UIImagePickerControllerQualityType.Medium,
     });
 

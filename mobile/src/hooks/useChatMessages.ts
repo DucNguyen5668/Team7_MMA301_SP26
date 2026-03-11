@@ -2,8 +2,9 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { io, Socket } from "socket.io-client";
 import { API } from "../services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { IP_ADDRESS } from "../constants/ip";
 
-const SOCKET_URL = "http://192.168.9.101:5000"; // Update with your backend URL
+const SOCKET_URL = `http://${IP_ADDRESS}:5000`; // Update with your backend URL
 
 interface User {
   _id: string;

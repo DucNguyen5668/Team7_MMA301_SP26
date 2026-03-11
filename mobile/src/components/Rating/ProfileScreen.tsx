@@ -13,49 +13,11 @@ import { Ionicons } from "@expo/vector-icons";
 import StarRating from "./StarRating";
 import RatingModal from "./RatingModal";
 import { API } from "../../services/api";
-
-interface Review {
-  _id: string;
-  ratingUser: {
-    _id: string;
-    fullName: string;
-    avatar: string;
-  };
-  rating: number;
-  review: string;
-  createdAt: string;
-}
-
-interface RatingDistributionItem {
-  stars: number;
-  count: number;
-  percentage: number;
-}
-
-interface ProfileData {
-  user: {
-    id: string;
-    fullName: string;
-    avatar: string;
-    memberSince: string;
-  };
-  stats: {
-    averageRating: number;
-    totalRatings: number;
-    ratingDistribution: Record<number, number>;
-  };
-  ratings: Review[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
-}
+import { ProfileData, RatingDistributionItem } from "../../types/reviews";
 
 interface ProfileScreenProps {
   opponentId: string;
-  opponentName: string;  // used as fallback while loading
+  opponentName: string; // used as fallback while loading
   opponentAvatar: string; // used as fallback while loading
   conversationId: string;
   onBack: () => void;
@@ -79,7 +41,9 @@ export default function ProfileScreen({
   const fetchProfile = async (page = 1, append = false) => {
     try {
       setError(null);
-      const res = await API.get(`/ratings/profile/${opponentId}?page=${page}&limit=10`);
+      const res = await API.get(
+        `/ratings/profile/${opponentId}?page=${page}&limit=10`,
+      );
       const data: ProfileData = res.data;
 
       if (append && profileData) {
@@ -223,7 +187,8 @@ export default function ProfileScreen({
         onScrollEndDrag={({ nativeEvent }) => {
           const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
           const isCloseToBottom =
-            layoutMeasurement.height + contentOffset.y >= contentSize.height - 80;
+            layoutMeasurement.height + contentOffset.y >=
+            contentSize.height - 80;
           if (isCloseToBottom) handleLoadMore();
         }}
       >
@@ -296,7 +261,11 @@ export default function ProfileScreen({
               <View key={review._id} style={styles.reviewItem}>
                 <View style={styles.reviewHeader}>
                   <Image
-                    source={{ uri: review.ratingUser?.avatar || `https://i.pravatar.cc/150?img=1` }}
+                    source={{
+                      uri:
+                        review.ratingUser?.avatar ||
+                        `https://i.pravatar.cc/150?img=1`,
+                    }}
                     style={styles.reviewerAvatar}
                   />
                   <View style={styles.reviewerInfo}>
@@ -331,7 +300,9 @@ export default function ProfileScreen({
           {profileData &&
             currentPage >= profileData.pagination.totalPages &&
             profileData.ratings.length > 0 && (
-              <Text style={styles.allLoadedText}>Đã hiển thị tất cả đánh giá</Text>
+              <Text style={styles.allLoadedText}>
+                Đã hiển thị tất cả đánh giá
+              </Text>
             )}
         </View>
       </ScrollView>

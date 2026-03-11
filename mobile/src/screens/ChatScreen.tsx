@@ -3,27 +3,7 @@ import { View, StyleSheet } from "react-native";
 import InboxScreen from "../components/Chat/InboxScreen";
 import ChatRoomScreen from "../components/Chat/ChatRoomScreen";
 import ProfileScreen from "../components/Rating/ProfileScreen";
-
-export interface Conversation {
-  id: string;
-  opponentId: string; 
-  opponentName: string;
-  opponentAvatar: string;
-  productImage: string;
-  productPrice: string;
-  lastMessage: string;
-  timestamp: string;
-  unread: number;
-  lastMessageTime: Date;
-}
-
-export interface Message {
-  id: string;
-  sender: "opponent" | "me";
-  type: "text" | "image" | "location";
-  content: string | { lat: number; lng: number; address: string };
-  timestamp: string;
-}
+import { Conversation } from "../hooks/useChatMessages";
 
 export default function ChatScreen() {
   const [currentScreen, setCurrentScreen] = useState<
@@ -71,7 +51,6 @@ export default function ChatScreen() {
           onBack={backToChat}
         />
       )}
-
     </View>
   );
 }

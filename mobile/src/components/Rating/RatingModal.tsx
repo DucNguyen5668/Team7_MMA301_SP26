@@ -22,7 +22,7 @@ interface RatingModalProps {
   onClose: () => void;
   onSubmitSuccess?: () => void;
   user: {
-    id: string; 
+    id: string;
     name: string;
     avatar: string;
   };
