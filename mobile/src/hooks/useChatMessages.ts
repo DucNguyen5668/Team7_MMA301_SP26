@@ -43,15 +43,12 @@ export const useChatMessages = ({
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
-  const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const socketRef = useRef<Socket | null>(null);
 
-  console.log("messages", messages);
-
-  // ─── Socket ────────────────────────────────────────────────────────────────
+  // ─── Socket ──────────────────────────────────────────────────────────────
   useEffect(() => {
     let socket: Socket;
 
@@ -73,10 +70,12 @@ export const useChatMessages = ({
         setError(e.msg || "Socket connection error"),
       );
 
-      console.log('messages', messages)
-
       socket.on("newMessage", (msg: any) => {
-        setMessages((prev) => [toMessage(msg, currentUserId), ...prev]); 
+        const newMsg = toMessage(msg, currentUserId);
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === newMsg.id)) return prev;
+          return [newMsg, ...prev];
+        });
 
         const senderId =
           typeof msg.sender === "string" ? msg.sender : msg.sender?._id;
@@ -102,44 +101,63 @@ export const useChatMessages = ({
     };
   }, [conversationId, currentUserId]);
 
-  // ─── Fetch messages (paginated) ────────────────────────────────────────────
-  const fetchMessages = useCallback(
-    async (pageNum: number) => {
-      try {
-        setError(null);
-        pageNum === 1 ? setLoading(true) : setLoadingMore(true);
+  // ─── Fetch initial ────────────────────────────────────────────────────────
+  const fetchInitialMessages = useCallback(async () => {
+    try {
+      setError(null);
+      setLoading(true);
 
-        const { data } = await API.get(`/messages/${conversationId}/messages`, {
-          params: { page: pageNum, limit: 10 },
-        });
+      const { data } = await API.get(`/messages/${conversationId}/messages`, {
+        params: { limit: 20 },
+      });
 
-        const transformed: Message[] = data.messages.map((m: Message) =>
-          toMessage(m, currentUserId),
-        );
+      const transformed: Message[] = data.messages.map((m: any) =>
+        toMessage(m, currentUserId),
+      );
 
-        setMessages((prev) =>
-          pageNum === 1 ? transformed : [...prev, ...transformed],
-        );
-        setHasMore(data.hasMore);
-        setPage(pageNum);
-      } catch (err: any) {
-        setError(err.response?.data?.message || "Failed to load messages");
-      } finally {
-        setLoading(false);
-        setLoadingMore(false);
-      }
-    },
-    [conversationId, currentUserId],
-  );
+      setMessages(transformed);
+      setHasMore(data.hasMore);
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Failed to load messages");
+    } finally {
+      setLoading(false);
+    }
+  }, [conversationId, currentUserId]);
+
   useEffect(() => {
-    fetchMessages(1);
-  }, [fetchMessages]);
+    fetchInitialMessages();
+  }, [fetchInitialMessages]);
 
-  const loadMoreMessages = useCallback(() => {
-    if (hasMore && !loadingMore) fetchMessages(page + 1);
-  }, [hasMore, loadingMore, page, fetchMessages]);
+  // ─── Load more (cursor-based) ─────────────────────────────────────────────
+  const loadMoreMessages = useCallback(async () => {
+    if (!hasMore || loadingMore) return;
 
-  // ─── Send ──────────────────────────────────────────────────────────────────
+    // Lấy id của tin nhắn cũ nhất hiện tại (cuối mảng vì inverted)
+    const oldestMessage = messages[messages.length - 1];
+    if (!oldestMessage) return;
+
+    try {
+      setLoadingMore(true);
+      setError(null);
+
+      const { data } = await API.get(`/messages/${conversationId}/messages`, {
+        params: { before: oldestMessage.id, limit: 20 },
+      });
+
+      const transformed: Message[] = data.messages.map((m: any) =>
+        toMessage(m, currentUserId),
+      );
+
+      setMessages((prev) => [...prev, ...transformed]);
+      setHasMore(data.hasMore);
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Failed to load messages");
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [conversationId, currentUserId, hasMore, loadingMore, messages]);
+
+  // ─── Send ─────────────────────────────────────────────────────────────────
   const sendMessage = useCallback(
     (content: string, type = "text") => {
       if (!content.trim() || !socketRef.current) return;
@@ -176,7 +194,7 @@ export const useChatMessages = ({
     sendImageMessage,
     sendLocationMessage,
     loadMoreMessages,
-    refreshMessages: () => fetchMessages(1),
+    refreshMessages: fetchInitialMessages,
   };
 };
 
