@@ -299,7 +299,9 @@ const styles = StyleSheet.create({
   rateButton: {
     paddingVertical: 10,
     paddingHorizontal: 24,
-    backgroundColor: "#FDD835",
+    backgroundColor: "#FFF",
+    borderColor: "#FDD835",
+    borderWidth: 2,
     borderRadius: 24,
   },
   rateButtonText: { fontSize: 14, fontWeight: "600", color: "#222" },

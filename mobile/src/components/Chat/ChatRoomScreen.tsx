@@ -53,16 +53,6 @@ export default function ChatRoomScreen({
     currentUserId: user.id,
   });
 
-  // Scroll to bottom when messages change
-  useEffect(() => {
-    if (messages.length > 0) {
-      setTimeout(
-        () => flatListRef.current?.scrollToEnd({ animated: true }),
-        100,
-      );
-    }
-  }, [messages.length]);
-
   const handlePickImage = async () => {
     setShowAttachMenu(false);
     if (!(await requestPermission("mediaLibrary"))) return;
@@ -109,7 +99,8 @@ export default function ChatRoomScreen({
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={30}
     >
       <ChatHeader
         conversation={conversation}
@@ -137,8 +128,9 @@ export default function ChatRoomScreen({
         keyExtractor={(item, index) => item.id?.toString() || index.toString()}
         contentContainerStyle={styles.messagesList}
         showsVerticalScrollIndicator={false}
+        inverted
         onEndReached={loadMoreMessages}
-        onEndReachedThreshold={0.5}
+        onEndReachedThreshold={0.2}
         ListHeaderComponent={
           loadingMore ? (
             <View style={styles.loadMoreContainer}>

@@ -49,6 +49,8 @@ export const useChatMessages = ({
   const [error, setError] = useState<string | null>(null);
   const socketRef = useRef<Socket | null>(null);
 
+  console.log("messages", messages);
+
   // ─── Socket ────────────────────────────────────────────────────────────────
   useEffect(() => {
     let socket: Socket;
@@ -71,8 +73,11 @@ export const useChatMessages = ({
         setError(e.msg || "Socket connection error"),
       );
 
+      console.log('messages', messages)
+
       socket.on("newMessage", (msg: any) => {
-        setMessages((prev) => [...prev, toMessage(msg, currentUserId)]);
+        setMessages((prev) => [toMessage(msg, currentUserId), ...prev]); 
+
         const senderId =
           typeof msg.sender === "string" ? msg.sender : msg.sender?._id;
         if (senderId !== currentUserId) {
@@ -105,17 +110,17 @@ export const useChatMessages = ({
         pageNum === 1 ? setLoading(true) : setLoadingMore(true);
 
         const { data } = await API.get(`/messages/${conversationId}/messages`, {
-          params: { page: pageNum, limit: 20 },
+          params: { page: pageNum, limit: 10 },
         });
 
-        const transformed = data.messages.map((m: any) =>
+        const transformed: Message[] = data.messages.map((m: Message) =>
           toMessage(m, currentUserId),
         );
 
         setMessages((prev) =>
-          pageNum === 1 ? transformed : [...transformed, ...prev],
+          pageNum === 1 ? transformed : [...prev, ...transformed],
         );
-        setHasMore(pageNum < data.totalPages);
+        setHasMore(data.hasMore);
         setPage(pageNum);
       } catch (err: any) {
         setError(err.response?.data?.message || "Failed to load messages");
@@ -126,7 +131,6 @@ export const useChatMessages = ({
     },
     [conversationId, currentUserId],
   );
-
   useEffect(() => {
     fetchMessages(1);
   }, [fetchMessages]);

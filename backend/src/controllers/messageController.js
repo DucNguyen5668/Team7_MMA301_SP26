@@ -18,6 +18,9 @@ exports.getMessages = async (req, res) => {
       return res.status(404).json({ message: "Conversation not found" });
     }
 
+    const total = await Message.countDocuments({ conversation: convId });
+    const totalPages = Math.ceil(total / limit);
+
     const messages = await Message.find({ conversation: convId })
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -25,13 +28,12 @@ exports.getMessages = async (req, res) => {
       .populate("sender", "fullName")
       .lean();
 
-    const total = await Message.countDocuments({ conversation: convId });
-
     res.json({
-      messages: messages.reverse(), // cũ → mới
+      messages: messages, // cũ → mới
       page,
       limit,
-      totalPages: Math.ceil(total / limit),
+      totalPages,
+      hasMore: page < totalPages,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

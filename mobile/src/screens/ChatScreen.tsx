@@ -4,6 +4,7 @@ import InboxScreen from "../components/Chat/InboxScreen";
 import ChatRoomScreen from "../components/Chat/ChatRoomScreen";
 import ProfileScreen from "../components/Rating/ProfileScreen";
 import { Conversation } from "../types/message";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ChatScreen() {
   const [currentScreen, setCurrentScreen] = useState<
@@ -31,7 +32,7 @@ export default function ChatScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {currentScreen === "inbox" && <InboxScreen onOpenChat={openChat} />}
 
       {currentScreen === "chat" && selectedConversation && (
@@ -51,7 +52,7 @@ export default function ChatScreen() {
           onBack={backToChat}
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 
