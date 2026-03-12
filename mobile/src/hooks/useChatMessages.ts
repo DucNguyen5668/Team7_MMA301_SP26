@@ -96,6 +96,10 @@ export const useChatMessages = ({
         }
       });
 
+      socket.on("messageDeleted", ({ messageId }: { messageId: string }) => {
+        setMessages((prev) => prev.filter((m) => m.id !== messageId));
+      });
+
       socket.on(
         "messagesRead",
         (data: { conversationId: string; readBy: string }) => {
@@ -112,6 +116,17 @@ export const useChatMessages = ({
       socket?.disconnect();
     };
   }, [conversationId, currentUserId]);
+
+  const deleteMessage = useCallback(
+    (messageId: string) => {
+      if (!socketRef.current) return;
+      socketRef.current.emit("deleteMessage", {
+        messageId,
+        conversationId,
+      });
+    },
+    [conversationId],
+  );
 
   // ─── Fetch initial ────────────────────────────────────────────────────────
   const fetchInitialMessages = useCallback(async () => {
@@ -265,6 +280,7 @@ export const useChatMessages = ({
     sendImageMessage,
     sendLocationMessage,
     sendMediaMessage,
+    deleteMessage,
     loadMoreMessages,
     refreshMessages: fetchInitialMessages,
   };

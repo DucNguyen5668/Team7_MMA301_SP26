@@ -1,5 +1,12 @@
 import React, { useState } from "react";
-import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
+import {
+  View,
+  Text,
+  Image,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Message } from "../../types/message";
 
@@ -8,6 +15,7 @@ interface MessageBubbleProps {
   onImagePress: (uri: string) => void;
   onVideoPress: (uri: string) => void;
   isFirstMessage: boolean;
+  onDelete?: (messageId: string) => void; // thêm prop này
 }
 
 export default function MessageBubble({
@@ -15,10 +23,21 @@ export default function MessageBubble({
   onImagePress,
   onVideoPress,
   isFirstMessage,
+  onDelete,
 }: MessageBubbleProps) {
   const isMe = item.sender === "me";
-
   const [isShowTimeStamp, setIsShowTimeStamp] = useState(false);
+
+  const handleDelete = () => {
+    Alert.alert("Xóa tin nhắn", "Bạn có chắc muốn xóa tin nhắn này không?", [
+      { text: "Hủy", style: "cancel" },
+      {
+        text: "Xóa",
+        style: "destructive",
+        onPress: () => onDelete?.(item.id),
+      },
+    ]);
+  };
 
   return (
     <TouchableOpacity
@@ -73,12 +92,24 @@ export default function MessageBubble({
       </View>
 
       {(isShowTimeStamp || isFirstMessage) && (
-        <Text style={styles.messageTimestamp}>{item.timestamp}</Text>
+        <View style={styles.metaRow}>
+          <Text style={styles.messageTimestamp}>{item.timestamp}</Text>
+
+          {/* Nút xóa — chỉ hiện với tin của mình */}
+          {isMe && isShowTimeStamp && onDelete && (
+            <TouchableOpacity
+              onPress={handleDelete}
+              style={styles.deleteButton}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="trash-outline" size={14} color="#FF5722" />
+            </TouchableOpacity>
+          )}
+        </View>
       )}
     </TouchableOpacity>
   );
 }
-
 const styles = StyleSheet.create({
   messageContainer: {
     marginBottom: 12,
@@ -166,5 +197,16 @@ const styles = StyleSheet.create({
     color: "#999",
     marginTop: 4,
     paddingHorizontal: 4,
+  },
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 4,
+    paddingHorizontal: 4,
+  },
+
+  deleteButton: {
+    padding: 2,
   },
 });

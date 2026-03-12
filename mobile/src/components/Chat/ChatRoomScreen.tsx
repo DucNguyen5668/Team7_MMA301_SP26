@@ -19,6 +19,7 @@ import MessageBubble from "./MessageBubble";
 import ChatInputBar from "./ChatInputBar";
 import AttachMenu from "./AttachMenu";
 import ImagePreviewModal from "./ImagePreviewModal";
+import VideoModal from "./VideoModal";
 
 interface ChatRoomScreenProps {
   conversation: Conversation;
@@ -35,6 +36,8 @@ export default function ChatRoomScreen({
   const [messageInput, setMessageInput] = useState("");
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [showVideo, setShowVideo] = useState(false);
+  const [videoData, setVideoData] = useState<string | null>(null);
   const [pendingImage, setPendingImage] =
     useState<ImagePicker.ImagePickerAsset | null>(null);
 
@@ -50,6 +53,7 @@ export default function ChatRoomScreen({
     sendMessage,
     sendMediaMessage,
     loadMoreMessages,
+    deleteMessage,
   } = useChatMessages({
     conversationId: conversation.id.toString(),
     currentUserId: user.id,
@@ -141,7 +145,11 @@ export default function ChatRoomScreen({
           <MessageBubble
             item={item}
             onImagePress={setImagePreview}
-            onVideoPress={() => {}}
+            onVideoPress={(data) => { 
+              setShowVideo(true);
+              setVideoData(data);
+            }}
+            onDelete={deleteMessage}
             isFirstMessage={item.id === messages[0].id}
           />
         )}
@@ -189,6 +197,12 @@ export default function ChatRoomScreen({
       <ImagePreviewModal
         imageUri={imagePreview}
         onClose={() => setImagePreview(null)}
+      />
+
+      <VideoModal
+        data={videoData}
+        visible={showVideo}
+        onClose={() => setShowVideo(false)}
       />
     </KeyboardAvoidingView>
   );

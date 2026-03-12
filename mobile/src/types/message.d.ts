@@ -35,7 +35,7 @@ export interface ConversationBackend {
 }
 
 export interface Message {
-  id: string | number;
+  id: string;
   sender: "me" | "opponent";
   type: MessageType;
   content: string;
@@ -51,7 +51,7 @@ export interface MessageAttachment {
 }
 
 export interface Conversation {
-  id: string | number;
+  id: string;
   opponentId: string;
   opponentName: string;
   opponentAvatar: string;

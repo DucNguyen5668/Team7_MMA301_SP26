@@ -1,6 +1,23 @@
 import { Alert } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 
+import * as VideoThumbnails from "expo-video-thumbnails";
+
+export async function generateVideoThumbnail(dataBase64: string) {
+  try {
+    const { uri: thumbnail } = await VideoThumbnails.getThumbnailAsync(
+      dataBase64,
+      {
+        time: 1000,
+      },
+    );
+    return thumbnail;
+  } catch (e) {
+    console.warn(e);
+    return null;
+  }
+}
+
 export const requestPermission = async (
   type: "camera" | "mediaLibrary",
 ): Promise<boolean> => {
