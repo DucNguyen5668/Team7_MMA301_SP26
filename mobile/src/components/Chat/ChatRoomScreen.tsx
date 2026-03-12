@@ -13,7 +13,7 @@ import * as ImagePicker from "expo-image-picker";
 import { useChatMessages } from "../../hooks/useChatMessages";
 import { Conversation, Message } from "../../types/message";
 import { AuthContext } from "../../context/authContext";
-import { requestPermission } from "../../utils";
+import { generateVideoThumbnail, requestPermission } from "../../utils";
 import ChatHeader from "./ChatHeader";
 import MessageBubble from "./MessageBubble";
 import ChatInputBar from "./ChatInputBar";
@@ -42,6 +42,9 @@ export default function ChatRoomScreen({
     useState<ImagePicker.ImagePickerAsset | null>(null);
 
   const flatListRef = useRef<FlatList>(null);
+  const [pendingVideo, setPendingVideo] = useState<
+    (ImagePicker.ImagePickerAsset & { thumbnail?: string }) | null
+  >(null);
 
   const {
     messages,
@@ -87,15 +90,26 @@ export default function ChatRoomScreen({
     });
 
     if (!result.canceled && result.assets.length > 0) {
-      // await sendMediaMessage(result.assets, "video");
+      const asset = result.assets[0];
+      // Generate thumbnail từ local URI trước khi encode base64
+      const thumbnail = await generateVideoThumbnail(asset.uri);
+      setPendingVideo({ ...asset, thumbnail: thumbnail ?? undefined });
     }
   };
 
   const handleSendMessage = async () => {
     const hasText = messageInput.trim().length > 0;
     const hasImage = pendingImage;
+    const hasVideo = pendingVideo;
 
-    if (!hasText && !hasImage) return;
+    if (!hasText && !hasImage && !hasVideo) return;
+
+    if (hasVideo) {
+      await sendMediaMessage([pendingVideo], "video", messageInput.trim());
+      setMessageInput("");
+      setPendingVideo(null);
+      return;
+    }
 
     if (hasImage) {
       await sendMediaMessage([pendingImage], "image", messageInput.trim());
@@ -145,7 +159,7 @@ export default function ChatRoomScreen({
           <MessageBubble
             item={item}
             onImagePress={setImagePreview}
-            onVideoPress={(data) => { 
+            onVideoPress={(data) => {
               setShowVideo(true);
               setVideoData(data);
             }}
@@ -185,6 +199,8 @@ export default function ChatRoomScreen({
         sending={sending}
         pendingImage={pendingImage}
         onRemovePendingImage={() => setPendingImage(null)}
+        pendingVideo={pendingVideo}
+        onRemovePendingVideo={() => setPendingVideo(null)}
       />
 
       <AttachMenu

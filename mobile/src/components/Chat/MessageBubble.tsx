@@ -73,11 +73,21 @@ export default function MessageBubble({
             onPress={() => onVideoPress(item.attachment!.data)}
             activeOpacity={0.9}
           >
-            <Image
-              source={{ uri: item.attachment!.data }}
-              style={styles.messageImage}
-              blurRadius={2}
-            />
+            {item.attachment.thumbnail ? (
+              // ✅ Có thumbnail → render ảnh nhẹ, không lag FlatList
+              <Image
+                source={{ uri: item.attachment.thumbnail }}
+                style={styles.messageImage}
+                resizeMode="cover"
+              />
+            ) : (
+              // Fallback nếu chưa có thumbnail
+              <View style={[styles.messageImage, styles.videoFallback]}>
+                <Ionicons name="videocam" size={32} color="#ccc" />
+              </View>
+            )}
+
+            {/* Play overlay */}
             <View style={styles.videoPlayButton}>
               <Ionicons name="play-circle" size={44} color="#fff" />
             </View>
@@ -111,6 +121,11 @@ export default function MessageBubble({
   );
 }
 const styles = StyleSheet.create({
+  videoFallback: {
+    backgroundColor: "#1a1a1a",
+    justifyContent: "center",
+    alignItems: "center",
+  },
   messageContainer: {
     marginBottom: 12,
   },

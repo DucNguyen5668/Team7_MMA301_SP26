@@ -1,45 +1,36 @@
-import { Modal, StyleSheet, View } from "react-native";
-import { TouchableOpacity } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { useVideoPlayer, VideoView } from "expo-video";
+import { Modal, TouchableOpacity, View, StyleSheet } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+
+interface VideoModalProps {
+  data: string | null;
+  visible: boolean;
+  onClose: () => void;
+}
 
 export default function VideoModal({
   data,
   visible,
   onClose,
-}: {
-  data: string | null;
-  visible: boolean;
-  onClose: () => void;
-}) {
-  let player;
+}: VideoModalProps) {
+  const player = useVideoPlayer(data ?? "", (p) => {
+    p.play();
+  });
 
-  if (data) {
-    player = useVideoPlayer(data, (player) => {
-      player.loop = true;
-      player.play();
-    });
-  }
-
-  if (!player) return null;
+  if (!data) return null;
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      style={{ backgroundColor: "#000" }}
-    >
+    <Modal visible={visible} animationType="slide" statusBarTranslucent>
       <View style={styles.container}>
-        <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-          <Ionicons name="close" size={35} color="#fff" />
+        <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
+          <Ionicons name="close-circle" size={36} color="#fff" />
         </TouchableOpacity>
 
-        {/* 3. Hiển thị VideoView */}
         <VideoView
+          player={player}
           style={styles.video}
-          player={player!}
-          allowsFullscreen
-          allowsPictureInPicture
+          contentFit="contain"
+          nativeControls
         />
       </View>
     </Modal>
@@ -49,19 +40,17 @@ export default function VideoModal({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#000", // Đặt nền đen cho chuẩn video
+    backgroundColor: "#000",
     justifyContent: "center",
-  },
-  video: {
-    width: "100%",
-    height: "100%", // Hoặc set chiều cao cụ thể tùy ý
   },
   closeBtn: {
     position: "absolute",
-    top: 40, // Tăng lên một chút để tránh notch (tai thỏ)
-    right: 20,
+    top: 50,
+    right: 16,
     zIndex: 10,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    borderRadius: 20,
+  },
+  video: {
+    flex: 1,
+    width: "100%",
   },
 });

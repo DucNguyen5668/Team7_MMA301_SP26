@@ -48,6 +48,7 @@ export interface Message {
 export interface MessageAttachment {
   data: string;
   type: "image" | "video";
+  thumbnail?: string;
 }
 
 export interface Conversation {

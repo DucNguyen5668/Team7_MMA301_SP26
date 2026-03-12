@@ -26,6 +26,7 @@ function toMessage(msg: any, currentUserId: string): Message {
     attachment = {
       data: msg.attachment.data,
       type: msg.attachment.type,
+      thumbnail: msg.attachment.thumbnail,
     };
   }
 
@@ -215,7 +216,7 @@ export const useChatMessages = ({
 
   const sendMediaMessage = useCallback(
     async (
-      assets: ImagePicker.ImagePickerAsset[],
+      assets: (ImagePicker.ImagePickerAsset & { thumbnail?: string })[],
       type: "image" | "video",
       content: string = "",
     ) => {
@@ -227,12 +228,9 @@ export const useChatMessages = ({
         1024;
 
       for (const asset of assets) {
-        // ── Kiểm tra size ──────────────────────────────────────────────
         if (asset.fileSize && asset.fileSize > maxBytes) {
           setError(
-            `File "${asset.fileName ?? "unknown"}" vượt quá ${
-              type === "image" ? MAX_IMAGE_SIZE_MB : MAX_VIDEO_SIZE_MB
-            }MB`,
+            `File vượt quá ${type === "image" ? MAX_IMAGE_SIZE_MB : MAX_VIDEO_SIZE_MB}MB`,
           );
           continue;
         }
@@ -240,15 +238,22 @@ export const useChatMessages = ({
         try {
           setSending(true);
           setError(null);
+
           const file = new FileSystem.File(asset.uri);
           const base64 = await file.base64();
-
           const ext =
             asset.uri.split(".").pop() ?? (type === "image" ? "jpg" : "mp4");
           const mimeType = type === "image" ? `image/${ext}` : `video/${ext}`;
           const dataUri = `data:${mimeType};base64,${base64}`;
 
-          console.log("dataUri", dataUri);
+          // Encode thumbnail nếu là video
+          let thumbnailDataUri: string | undefined;
+          if (type === "video" && asset.thumbnail) {
+            const thumbFile = new FileSystem.File(asset.thumbnail);
+            const thumbBase64 = await thumbFile.base64();
+            thumbnailDataUri = `data:image/jpeg;base64,${thumbBase64}`;
+          }
+
           socketRef.current.emit("sendMessage", {
             conversationId,
             type,
@@ -256,10 +261,10 @@ export const useChatMessages = ({
             attachment: {
               data: dataUri,
               type,
+              thumbnail: thumbnailDataUri,
             },
           });
         } catch (err: any) {
-          console.log("err", err);
           setError("Không thể đọc file");
         } finally {
           setSending(false);

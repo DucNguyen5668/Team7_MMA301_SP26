@@ -3,14 +3,11 @@ import * as ImagePicker from "expo-image-picker";
 
 import * as VideoThumbnails from "expo-video-thumbnails";
 
-export async function generateVideoThumbnail(dataBase64: string) {
+export async function generateVideoThumbnail(uri: string) {
   try {
-    const { uri: thumbnail } = await VideoThumbnails.getThumbnailAsync(
-      dataBase64,
-      {
-        time: 1000,
-      },
-    );
+    const { uri: thumbnail } = await VideoThumbnails.getThumbnailAsync(uri, {
+      time: 1000,
+    });
     return thumbnail;
   } catch (e) {
     console.warn(e);

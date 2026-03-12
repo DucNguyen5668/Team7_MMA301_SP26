@@ -18,6 +18,8 @@ interface ChatInputBarProps {
   sending: boolean;
   pendingImage?: ImagePicker.ImagePickerAsset | null;
   onRemovePendingImage?: () => void;
+  pendingVideo?: (ImagePicker.ImagePickerAsset & { thumbnail?: string }) | null;
+  onRemovePendingVideo?: () => void;
 }
 
 export default function ChatInputBar({
@@ -28,6 +30,8 @@ export default function ChatInputBar({
   sending,
   pendingImage = null,
   onRemovePendingImage,
+  pendingVideo = null,
+  onRemovePendingVideo,
 }: ChatInputBarProps) {
   const canSend = (value.trim().length > 0 || !!pendingImage) && !sending;
 
@@ -55,6 +59,7 @@ export default function ChatInputBar({
             </TouchableOpacity>
           </View>
         )}
+
         <View style={styles.textInputContainer}>
           <TextInput
             style={styles.textInput}
