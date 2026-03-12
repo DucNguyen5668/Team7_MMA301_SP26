@@ -25,7 +25,7 @@ interface ProfileScreenProps {
   onBack: () => void;
 }
 
-export default function ProfileScreen({
+export default function RatingProfileScreen({
   opponentId,
   opponentName,
   opponentAvatar,

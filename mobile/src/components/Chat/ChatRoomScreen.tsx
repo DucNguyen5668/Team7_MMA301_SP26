@@ -46,7 +46,7 @@ export default function ChatRoomScreen({
     hasMore,
     error,
     sendMessage,
-    sendImageMessage,
+    sendMediaMessage,
     loadMoreMessages,
   } = useChatMessages({
     conversationId: conversation.id.toString(),
@@ -56,27 +56,34 @@ export default function ChatRoomScreen({
   const handlePickImage = async () => {
     setShowAttachMenu(false);
     if (!(await requestPermission("mediaLibrary"))) return;
+
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: "images",
-      allowsEditing: true,
+      allowsMultipleSelection: true, // nhiều ảnh
+      selectionLimit: 10,
       quality: 0.8,
+      base64: false, // đọc qua FileSystem thay vì để Expo encode
     });
+
     if (!result.canceled && result.assets.length > 0) {
-      sendImageMessage(result.assets[0].uri);
+      await sendMediaMessage(result.assets, "image");
     }
   };
 
   const handlePickVideo = async () => {
     setShowAttachMenu(false);
     if (!(await requestPermission("mediaLibrary"))) return;
+
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: "videos",
-      allowsEditing: true,
-      videoMaxDuration: 60,
+      allowsMultipleSelection: true, // nhiều video
+      selectionLimit: 3,
+      videoMaxDuration: 60, // tối đa 60s ở picker level
       quality: ImagePicker.UIImagePickerControllerQualityType.Medium,
     });
+
     if (!result.canceled && result.assets.length > 0) {
-      sendMessage(result.assets[0].uri, "video");
+      await sendMediaMessage(result.assets, "video");
     }
   };
 

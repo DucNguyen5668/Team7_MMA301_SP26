@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { View, StyleSheet } from "react-native";
 import InboxScreen from "../components/Chat/InboxScreen";
 import ChatRoomScreen from "../components/Chat/ChatRoomScreen";
-import ProfileScreen from "../components/Rating/ProfileScreen";
+import ProfileScreen from "../components/Rating/RatingProfileScreen";
 import { Conversation } from "../types/message";
 import { SafeAreaView } from "react-native-safe-area-context";
 

@@ -4,6 +4,9 @@ import { API } from "../services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { IP_ADDRESS } from "../constants/ip";
 import { Message } from "../types/message";
+import * as FileSystem from "expo-file-system";
+import * as ImagePicker from "expo-image-picker";
+
 import { formatMessageTimestamp } from "../utils";
 
 const SOCKET_URL = `http://${IP_ADDRESS}:5000`;
@@ -183,6 +186,56 @@ export const useChatMessages = ({
     [sendMessage],
   );
 
+  const MAX_IMAGE_SIZE_MB = 5;
+  const MAX_VIDEO_SIZE_MB = 10;
+
+  const sendMediaMessage = useCallback(
+    async (assets: ImagePicker.ImagePickerAsset[], type: "image" | "video") => {
+      if (!socketRef.current) return;
+
+      const maxBytes =
+        (type === "image" ? MAX_IMAGE_SIZE_MB : MAX_VIDEO_SIZE_MB) *
+        1024 *
+        1024;
+
+      for (const asset of assets) {
+        // ── Kiểm tra size ──────────────────────────────────────────────
+        if (asset.fileSize && asset.fileSize > maxBytes) {
+          setError(
+            `File "${asset.fileName ?? "unknown"}" vượt quá ${
+              type === "image" ? MAX_IMAGE_SIZE_MB : MAX_VIDEO_SIZE_MB
+            }MB`,
+          );
+          continue;
+        }
+
+        try {
+          setSending(true);
+          setError(null);
+          const file = new FileSystem.File(asset.uri);
+          const base64 = await file.base64();
+
+          const ext =
+            asset.uri.split(".").pop() ?? (type === "image" ? "jpg" : "mp4");
+          const mimeType = type === "image" ? `image/${ext}` : `video/${ext}`;
+          const dataUri = `data:${mimeType};base64,${base64}`;
+
+          // ── Gửi qua socket ─────────────────────────────────────────────
+          socketRef.current.emit("sendMessage", {
+            conversationId,
+            content: dataUri, // base64 data URI lưu thẳng vào MongoDB
+            type, // "image" | "video"
+          });
+        } catch (err: any) {
+          setError("Không thể đọc file");
+        } finally {
+          setSending(false);
+        }
+      }
+    },
+    [conversationId],
+  );
+
   return {
     messages,
     loading,
@@ -193,6 +246,7 @@ export const useChatMessages = ({
     sendMessage,
     sendImageMessage,
     sendLocationMessage,
+    sendMediaMessage,
     loadMoreMessages,
     refreshMessages: fetchInitialMessages,
   };
