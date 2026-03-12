@@ -10,58 +10,63 @@ function chatSocket(io, socket) {
   // even when they're on the inbox screen (not inside any conversation)
   socket.join(`user:${userId}`);
 
-  // ─── Send Message ──────────────────────────────────────────────────────────
   socket.on("sendMessage", async (data) => {
-    const { conversationId, content, type = "text" } = data;
+    const {
+      conversationId,
+      content = "",
+      type = "text",
+      attachment = null,
+    } = data;
 
     try {
       const conv = await Conversation.findById(conversationId);
-      if (!conv || !conv.participants.map((p) => p.toString()).includes(userId.toString())) {
+      if (
+        !conv ||
+        !conv.participants.map((p) => p.toString()).includes(userId.toString())
+      ) {
         socket.emit("error", { msg: "Không có quyền" });
         return;
       }
 
-      // Sender has already "read" their own message
       const message = await Message.create({
         conversation: conversationId,
         sender: userId,
         content,
         type,
+        attachment,
         readBy: [userId],
       });
 
-      // Update conversation lastMessage + updatedAt
       await Conversation.findByIdAndUpdate(conversationId, {
         lastMessage: message._id,
         updatedAt: new Date(),
       });
 
-      // Broadcast new message to everyone in the conversation room
       io.to(conversationId.toString()).emit("newMessage", {
         _id: message._id,
         conversation: conversationId,
         sender: userId,
         content,
         type,
+        attachment,
         createdAt: message.createdAt,
         readBy: message.readBy,
       });
 
-      // Notify other participants about their updated unread count
-      // (reaches them via their personal user room regardless of which screen they're on)
+      // notify unread count
       const otherParticipants = conv.participants.filter(
-        (p) => p.toString() !== userId.toString()
+        (p) => p.toString() !== userId.toString(),
       );
 
       for (const participantId of otherParticipants) {
         const unreadCount = await _countUnreadForConversation(
           conversationId,
-          participantId
+          participantId,
         );
 
         io.to(`user:${participantId}`).emit("unreadUpdate", {
           conversationId,
-          unreadCount, // unread count for THIS conversation only
+          unreadCount,
         });
       }
     } catch (err) {
@@ -86,7 +91,7 @@ function chatSocket(io, socket) {
       const conv = await Conversation.findById(convId).lean();
       if (conv) {
         const otherParticipants = conv.participants.filter(
-          (p) => p.toString() !== userId.toString()
+          (p) => p.toString() !== userId.toString(),
         );
         for (const participantId of otherParticipants) {
           io.to(`user:${participantId}`).emit("messagesRead", {
@@ -125,7 +130,7 @@ async function _markConversationAsRead(convId, userId) {
       sender: { $ne: userId },
       readBy: { $nin: [userId] },
     },
-    { $addToSet: { readBy: userId } }
+    { $addToSet: { readBy: userId } },
   );
 }
 

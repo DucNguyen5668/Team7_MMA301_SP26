@@ -11,21 +11,30 @@ import { formatMessageTimestamp } from "../utils";
 
 const SOCKET_URL = `http://${IP_ADDRESS}:5000`;
 
-/** Maps a raw backend message to the FE Message shape. */
 function toMessage(msg: any, currentUserId: string): Message {
   const isMe =
     msg.sender === currentUserId || msg.sender?._id === currentUserId;
-  const senderId =
-    typeof msg.sender === "string" ? msg.sender : msg.sender?._id;
+
   const isRead = Array.isArray(msg.readBy)
-    ? msg.readBy.some((id: string) => id !== senderId)
+    ? msg.readBy.includes(currentUserId)
     : false;
+
+  let content = msg.content ?? "";
+  let attachment = undefined;
+
+  if (msg.attachment?.data) {
+    attachment = {
+      data: msg.attachment.data,
+      type: msg.attachment.type,
+    };
+  }
 
   return {
     id: msg._id,
     sender: isMe ? "me" : "opponent",
-    type: msg.type || "text",
-    content: msg.content,
+    type: msg.type,
+    content,
+    attachment,
     timestamp: formatMessageTimestamp(msg.createdAt),
     createdAt: new Date(msg.createdAt),
     isRead,
@@ -220,11 +229,13 @@ export const useChatMessages = ({
           const mimeType = type === "image" ? `image/${ext}` : `video/${ext}`;
           const dataUri = `data:${mimeType};base64,${base64}`;
 
-          // ── Gửi qua socket ─────────────────────────────────────────────
           socketRef.current.emit("sendMessage", {
             conversationId,
-            content: dataUri, // base64 data URI lưu thẳng vào MongoDB
-            type, // "image" | "video"
+            type,
+            attachment: {
+              url: dataUri,
+              type,
+            },
           });
         } catch (err: any) {
           setError("Không thể đọc file");

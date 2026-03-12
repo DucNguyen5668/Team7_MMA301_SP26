@@ -11,9 +11,16 @@ const MessageSchema = new mongoose.Schema(
       ref: "User",
     },
     content: String,
+    attachment: {
+      data: String,
+      type: {
+        type: String,
+        enum: ["image", "video"],
+      },
+    },
     type: {
       type: String,
-      enum: ["text", "image", "location", "video", "product"],
+      enum: ["text", "image", "video"],
     },
     readBy: [
       {

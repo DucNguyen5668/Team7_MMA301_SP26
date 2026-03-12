@@ -139,6 +139,7 @@ export default function ChatRoomScreen({
             item={item}
             onImagePress={setImagePreview}
             onVideoPress={() => {}}
+            isFirstMessage={item.id === messages[0].id}
           />
         )}
         keyExtractor={(item, index) => item.id?.toString() || index.toString()}

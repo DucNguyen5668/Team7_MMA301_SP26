@@ -38,10 +38,16 @@ export interface Message {
   id: string | number;
   sender: "me" | "opponent";
   type: MessageType;
-  content: string | LocationContent;
+  content: string;
   timestamp: string;
   createdAt?: Date;
   isRead?: boolean;
+  attachment?: MessageAttachment;
+}
+
+export interface MessageAttachment {
+  data: string;
+  type: "image" | "video";
 }
 
 export interface Conversation {

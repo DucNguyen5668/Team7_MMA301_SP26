@@ -36,6 +36,8 @@ export default function InboxScreen({ onOpenChat }: InboxScreenProps) {
 
   const socketRef = useRef<Socket | null>(null);
 
+  console.log('conversations', conversations)
+
   const fetchConversations = async () => {
     try {
       setError(null);
@@ -107,11 +109,6 @@ export default function InboxScreen({ onOpenChat }: InboxScreenProps) {
     })();
 
     return () => socket?.disconnect();
-  }, []);
-
-  // Initial fetch
-  useEffect(() => {
-    fetchConversations();
   }, []);
 
   // Refetch immediately when filter changes

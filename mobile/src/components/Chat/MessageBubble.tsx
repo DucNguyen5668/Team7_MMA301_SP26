@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Message } from "../../types/message";
@@ -7,21 +7,26 @@ interface MessageBubbleProps {
   item: Message;
   onImagePress: (uri: string) => void;
   onVideoPress: (uri: string) => void;
+  isFirstMessage: boolean;
 }
 
 export default function MessageBubble({
   item,
   onImagePress,
   onVideoPress,
+  isFirstMessage,
 }: MessageBubbleProps) {
   const isMe = item.sender === "me";
 
+  const [isShowTimeStamp, setIsShowTimeStamp] = useState(false);
+
   return (
-    <View
+    <TouchableOpacity
       style={[
         styles.messageContainer,
         isMe ? styles.messageContainerMe : styles.messageContainerOpponent,
       ]}
+      onPress={() => setIsShowTimeStamp(!isShowTimeStamp)}
     >
       <View
         style={[
@@ -29,30 +34,33 @@ export default function MessageBubble({
           isMe ? styles.messageBubbleMe : styles.messageBubbleOpponent,
         ]}
       >
-        {item.type === "text" && (
-          <Text style={styles.messageText}>{item.content as string}</Text>
+        {/* TEXT */}
+        {item.content?.length > 0 && (
+          <Text style={styles.messageText}>{item.content}</Text>
         )}
 
-        {item.type === "image" && (
+        {/* IMAGE */}
+        {item.attachment?.type === "image" && (
           <TouchableOpacity
-            onPress={() => onImagePress(item.content as string)}
+            onPress={() => onImagePress(item.attachment!.data)}
             activeOpacity={0.9}
           >
             <Image
-              source={{ uri: item.content as string }}
+              source={{ uri: item.attachment!.data }}
               style={styles.messageImage}
             />
           </TouchableOpacity>
         )}
 
-        {item.type === "video" && (
+        {/* VIDEO */}
+        {item.attachment?.type === "video" && (
           <TouchableOpacity
             style={styles.videoContainer}
-            onPress={() => onVideoPress(item.content as string)}
+            onPress={() => onVideoPress(item.attachment!.data)}
             activeOpacity={0.9}
           >
             <Image
-              source={{ uri: item.content as string }}
+              source={{ uri: item.attachment!.data }}
               style={styles.messageImage}
               blurRadius={2}
             />
@@ -63,6 +71,7 @@ export default function MessageBubble({
           </TouchableOpacity>
         )}
 
+        {/* LOCATION */}
         {item.type === "location" && (
           <View style={styles.locationContainer}>
             <View style={styles.locationHeader}>
@@ -73,14 +82,16 @@ export default function MessageBubble({
               <Ionicons name="map" size={32} color="#999" />
             </View>
             <Text style={styles.locationAddress}>
-              {(item.content as any).address}
+              {JSON.parse(item.content).address}
             </Text>
           </View>
         )}
       </View>
 
-      <Text style={styles.messageTimestamp}>{item.timestamp}</Text>
-    </View>
+      {(isShowTimeStamp || isFirstMessage) && (
+        <Text style={styles.messageTimestamp}>{item.timestamp}</Text>
+      )}
+    </TouchableOpacity>
   );
 }
 

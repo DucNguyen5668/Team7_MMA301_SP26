@@ -61,6 +61,7 @@ exports.getConversations = async (req, res) => {
 
     res.json(result);
   } catch (error) {
+    console.log("error", error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -84,6 +85,8 @@ exports.getConversationById = async (req, res) => {
 
     res.json(conv);
   } catch (error) {
+    console.log("error", error);
+
     res.status(500).json({ message: error.message });
   }
 };
@@ -117,6 +120,8 @@ exports.createOrGetPrivateConversation = async (req, res) => {
 
     res.json(conversation);
   } catch (error) {
+    console.log("error", error);
+
     res.status(500).json({ message: error.message });
   }
 };
@@ -145,6 +150,8 @@ exports.markAsRead = async (req, res) => {
 
     res.json({ message: "Marked as read" });
   } catch (error) {
+    console.log("error", error);
+
     res.status(500).json({ message: error.message });
   }
 };
