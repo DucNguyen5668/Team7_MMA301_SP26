@@ -1,13 +1,14 @@
 import React from "react";
 import {
   View,
-  Text,
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
+  Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 
 interface ChatInputBarProps {
   value: string;
@@ -15,6 +16,8 @@ interface ChatInputBarProps {
   onSend: () => void;
   onAttach: () => void;
   sending: boolean;
+  pendingImage?: ImagePicker.ImagePickerAsset | null;
+  onRemovePendingImage?: () => void;
 }
 
 export default function ChatInputBar({
@@ -23,14 +26,35 @@ export default function ChatInputBar({
   onSend,
   onAttach,
   sending,
+  pendingImage = null,
+  onRemovePendingImage,
 }: ChatInputBarProps) {
+  const canSend = (value.trim().length > 0 || !!pendingImage) && !sending;
+
   return (
     <View style={styles.inputContainer}>
+      {/* ── Input row ── */}
       <View style={styles.inputBar}>
-        <TouchableOpacity style={styles.inputIconButton} onPress={onAttach}>
-          <Ionicons name="add-circle-outline" size={24} color="#666" />
-        </TouchableOpacity>
+        {!pendingImage && (
+          <TouchableOpacity style={styles.inputIconButton} onPress={onAttach}>
+            <Ionicons name="add-circle-outline" size={24} color="#666" />
+          </TouchableOpacity>
+        )}
 
+        {pendingImage && (
+          <View style={styles.smallPreview}>
+            <Image
+              source={{ uri: pendingImage.uri }}
+              style={styles.smallPreviewImage}
+            />
+            <TouchableOpacity
+              style={styles.removeSmall}
+              onPress={onRemovePendingImage}
+            >
+              <Ionicons name="close" size={16} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        )}
         <View style={styles.textInputContainer}>
           <TextInput
             style={styles.textInput}
@@ -44,21 +68,14 @@ export default function ChatInputBar({
         </View>
 
         <TouchableOpacity
-          style={[
-            styles.sendButton,
-            (!value.trim() || sending) && styles.sendButtonDisabled,
-          ]}
+          style={[styles.sendButton, !canSend && styles.sendButtonDisabled]}
           onPress={onSend}
-          disabled={!value.trim() || sending}
+          disabled={!canSend}
         >
           {sending ? (
             <ActivityIndicator size="small" color="#222" />
           ) : (
-            <Ionicons
-              name="send"
-              size={20}
-              color={value.trim() ? "#222" : "#999"}
-            />
+            <Ionicons name="send" size={20} color={canSend ? "#222" : "#999"} />
           )}
         </TouchableOpacity>
       </View>
@@ -67,12 +84,54 @@ export default function ChatInputBar({
 }
 
 const styles = StyleSheet.create({
+  smallPreview: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    marginRight: 4,
+    position: "relative",
+  },
+  smallPreviewImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 8,
+  },
+  removeSmall: {
+    position: "absolute",
+    top: -6,
+    right: -6,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    borderRadius: 10,
+    padding: 2,
+  },
   inputContainer: {
     backgroundColor: "#fff",
     borderTopWidth: 1,
     borderTopColor: "#e8e8e8",
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingTop: 8,
+    paddingBottom: 12,
+  },
+  previewBar: {
+    marginBottom: 8,
+  },
+  previewItem: {
+    position: "relative",
+    width: 80,
+    height: 80,
+  },
+  previewImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 10,
+    backgroundColor: "#e0e0e0",
+  },
+  removeButton: {
+    position: "absolute",
+    top: -6,
+    right: -6,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    borderRadius: 11,
   },
   inputBar: {
     flexDirection: "row",

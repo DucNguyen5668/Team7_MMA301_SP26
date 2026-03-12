@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useContext } from "react";
+import React, { useState, useRef, useContext } from "react";
 import {
   View,
   Text,
@@ -35,6 +35,7 @@ export default function ChatRoomScreen({
   const [messageInput, setMessageInput] = useState("");
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [pendingImage, setPendingImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
 
   const flatListRef = useRef<FlatList>(null);
 
@@ -59,14 +60,13 @@ export default function ChatRoomScreen({
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: "images",
-      allowsMultipleSelection: true, // nhiều ảnh
-      selectionLimit: 10,
+      allowsMultipleSelection: false,
       quality: 0.8,
-      base64: false, // đọc qua FileSystem thay vì để Expo encode
+      base64: false,
     });
 
     if (!result.canceled && result.assets.length > 0) {
-      await sendMediaMessage(result.assets, "image");
+      setPendingImage(result.assets[0]);
     }
   };
 
@@ -76,9 +76,8 @@ export default function ChatRoomScreen({
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: "videos",
-      allowsMultipleSelection: true, // nhiều video
-      selectionLimit: 3,
-      videoMaxDuration: 60, // tối đa 60s ở picker level
+      allowsMultipleSelection: false,
+      videoMaxDuration: 60,
       quality: ImagePicker.UIImagePickerControllerQualityType.Medium,
     });
 
@@ -87,9 +86,19 @@ export default function ChatRoomScreen({
     }
   };
 
-  const handleSendMessage = () => {
-    if (messageInput.trim()) {
-      sendMessage(messageInput);
+  const handleSendMessage = async () => {
+    const hasText = messageInput.trim().length > 0;
+    const hasImage = !!pendingImage;
+
+    if (!hasText && !hasImage) return;
+
+    if (hasImage) {
+      await sendMediaMessage([pendingImage!], "image");
+      setPendingImage(null);
+    }
+
+    if (hasText) {
+      sendMessage(messageInput.trim());
       setMessageInput("");
     }
   };
@@ -162,6 +171,8 @@ export default function ChatRoomScreen({
         onSend={handleSendMessage}
         onAttach={() => setShowAttachMenu(true)}
         sending={sending}
+        pendingImage={pendingImage}
+        onRemovePendingImage={() => setPendingImage(null)}
       />
 
       <AttachMenu

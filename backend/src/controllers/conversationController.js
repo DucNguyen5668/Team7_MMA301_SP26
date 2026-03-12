@@ -24,6 +24,20 @@ exports.getConversations = async (req, res) => {
           (p) => p._id.toString() !== userId.toString(),
         );
 
+        switch (conv.lastMessage.type) {
+          case "image":
+            conv.lastMessage.content = "Đã gửi 1 ảnh";
+            break;
+          case "video":
+            conv.lastMessage.content = "Đã gửi 1 video";
+            break;
+          case "file":
+            conv.lastMessage.content = "Đã gửi 1 file";
+            break;
+          default:
+            break;
+        }
+
         return {
           _id: conv._id,
           opponent: opponent || null,
@@ -50,8 +64,6 @@ exports.getConversations = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
-
 
 exports.getConversationById = async (req, res) => {
   try {

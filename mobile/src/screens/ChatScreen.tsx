@@ -14,7 +14,6 @@ export default function ChatScreen() {
     useState<Conversation | null>(null);
   const openChat = (conversation: Conversation) => {
     setSelectedConversation(conversation);
-    console.log("selectedConversation", conversation);
     setCurrentScreen("chat");
   };
 
