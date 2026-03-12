@@ -75,6 +75,33 @@ function chatSocket(io, socket) {
     }
   });
 
+  socket.on("deleteMessage", async ({ messageId, conversationId }) => {
+    try {
+      const message = await Message.findById(messageId);
+      if (!message) {
+        socket.emit("error", { msg: "Tin nhắn không tồn tại" });
+        return;
+      }
+
+      // Chỉ cho phép người gửi xóa tin của mình
+      if (message.sender.toString() !== userId.toString()) {
+        socket.emit("error", { msg: "Không có quyền xóa tin nhắn này" });
+        return;
+      }
+
+      await Message.findByIdAndDelete(messageId);
+
+      // Notify all participants in the conversation
+      io.to(conversationId.toString()).emit("messageDeleted", {
+        messageId,
+        conversationId,
+      });
+    } catch (err) {
+      console.error("deleteMessage error:", err);
+      socket.emit("error", { msg: "Lỗi xóa tin nhắn" });
+    }
+  });
+
   // ─── Join Conversation Room ────────────────────────────────────────────────
   socket.on("joinConversation", async (convId) => {
     console.log("User joined conversation:", convId, "| userId:", userId);
