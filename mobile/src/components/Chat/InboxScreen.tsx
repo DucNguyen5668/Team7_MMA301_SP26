@@ -36,8 +36,6 @@ export default function InboxScreen({ onOpenChat }: InboxScreenProps) {
 
   const socketRef = useRef<Socket | null>(null);
 
-  console.log('conversations', conversations)
-
   const fetchConversations = async () => {
     try {
       setError(null);

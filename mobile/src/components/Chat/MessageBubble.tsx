@@ -34,11 +34,6 @@ export default function MessageBubble({
           isMe ? styles.messageBubbleMe : styles.messageBubbleOpponent,
         ]}
       >
-        {/* TEXT */}
-        {item.content?.length > 0 && (
-          <Text style={styles.messageText}>{item.content}</Text>
-        )}
-
         {/* IMAGE */}
         {item.attachment?.type === "image" && (
           <TouchableOpacity
@@ -71,20 +66,9 @@ export default function MessageBubble({
           </TouchableOpacity>
         )}
 
-        {/* LOCATION */}
-        {item.type === "location" && (
-          <View style={styles.locationContainer}>
-            <View style={styles.locationHeader}>
-              <Ionicons name="location" size={16} color="#FF5722" />
-              <Text style={styles.locationLabel}>Vị trí</Text>
-            </View>
-            <View style={styles.locationMap}>
-              <Ionicons name="map" size={32} color="#999" />
-            </View>
-            <Text style={styles.locationAddress}>
-              {JSON.parse(item.content).address}
-            </Text>
-          </View>
+        {/* TEXT */}
+        {item.content?.length > 0 && (
+          <Text style={styles.messageText}>{item.content}</Text>
         )}
       </View>
 
@@ -123,6 +107,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#222",
     lineHeight: 20,
+    marginTop: 4,
   },
   messageImage: {
     width: 200,

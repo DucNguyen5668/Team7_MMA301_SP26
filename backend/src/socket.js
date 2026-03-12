@@ -7,8 +7,9 @@ function initSocket(server) {
   const io = new Server(server, {
     cors: {
       origin: "*",
-      methods: ["GET", "POST"],
+      methods: ["GET", "POST", "PUT", "DELETE"],
     },
+    maxHttpBufferSize: 1e8,
   });
 
   io.use(socketAuth);

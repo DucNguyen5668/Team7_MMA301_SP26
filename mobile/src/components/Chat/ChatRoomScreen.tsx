@@ -35,7 +35,8 @@ export default function ChatRoomScreen({
   const [messageInput, setMessageInput] = useState("");
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [pendingImage, setPendingImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
+  const [pendingImage, setPendingImage] =
+    useState<ImagePicker.ImagePickerAsset | null>(null);
 
   const flatListRef = useRef<FlatList>(null);
 
@@ -82,19 +83,21 @@ export default function ChatRoomScreen({
     });
 
     if (!result.canceled && result.assets.length > 0) {
-      await sendMediaMessage(result.assets, "video");
+      // await sendMediaMessage(result.assets, "video");
     }
   };
 
   const handleSendMessage = async () => {
     const hasText = messageInput.trim().length > 0;
-    const hasImage = !!pendingImage;
+    const hasImage = pendingImage;
 
     if (!hasText && !hasImage) return;
 
     if (hasImage) {
-      await sendMediaMessage([pendingImage!], "image");
+      await sendMediaMessage([pendingImage], "image", messageInput.trim());
+      setMessageInput("");
       setPendingImage(null);
+      return;
     }
 
     if (hasText) {

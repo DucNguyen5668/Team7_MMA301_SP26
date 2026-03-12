@@ -199,7 +199,11 @@ export const useChatMessages = ({
   const MAX_VIDEO_SIZE_MB = 10;
 
   const sendMediaMessage = useCallback(
-    async (assets: ImagePicker.ImagePickerAsset[], type: "image" | "video") => {
+    async (
+      assets: ImagePicker.ImagePickerAsset[],
+      type: "image" | "video",
+      content: string = "",
+    ) => {
       if (!socketRef.current) return;
 
       const maxBytes =
@@ -229,15 +233,18 @@ export const useChatMessages = ({
           const mimeType = type === "image" ? `image/${ext}` : `video/${ext}`;
           const dataUri = `data:${mimeType};base64,${base64}`;
 
+          console.log("dataUri", dataUri);
           socketRef.current.emit("sendMessage", {
             conversationId,
             type,
+            content,
             attachment: {
-              url: dataUri,
+              data: dataUri,
               type,
             },
           });
         } catch (err: any) {
+          console.log("err", err);
           setError("Không thể đọc file");
         } finally {
           setSending(false);
