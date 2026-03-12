@@ -17,6 +17,7 @@ const MessageSchema = new mongoose.Schema(
         type: String,
         enum: ["image", "video"],
       },
+      thumbnail: String,
     },
     type: {
       type: String,
