@@ -24,9 +24,13 @@ const SOCKET_URL = `http://${IP_ADDRESS}:5000`;
 
 interface InboxScreenProps {
   onOpenChat: (conversation: Conversation) => void;
+  onCompose: () => void;
 }
 
-export default function InboxScreen({ onOpenChat }: InboxScreenProps) {
+export default function InboxScreen({
+  onOpenChat,
+  onCompose,
+}: InboxScreenProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState<"all" | "unread">("all");
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -170,7 +174,7 @@ export default function InboxScreen({ onOpenChat }: InboxScreenProps) {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Tin nhắn</Text>
-          <TouchableOpacity style={styles.composeButton}>
+          <TouchableOpacity style={styles.composeButton} onPress={onCompose}>
             <Ionicons name="chatbubble-ellipses" size={20} color="#222" />
           </TouchableOpacity>
         </View>

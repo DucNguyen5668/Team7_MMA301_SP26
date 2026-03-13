@@ -3,6 +3,7 @@ import { View, StyleSheet } from "react-native";
 import InboxScreen from "../components/Chat/InboxScreen";
 import ChatRoomScreen from "../components/Chat/ChatRoomScreen";
 import ProfileScreen from "../components/Rating/RatingProfileScreen";
+import SearchUserModal from "../components/Chat/SearchUserModal";
 import { Conversation } from "../types/message";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -12,6 +13,8 @@ export default function ChatScreen() {
   >("inbox");
   const [selectedConversation, setSelectedConversation] =
     useState<Conversation | null>(null);
+  const [showSearchModal, setShowSearchModal] = useState(false);
+
   const openChat = (conversation: Conversation) => {
     setSelectedConversation(conversation);
     setCurrentScreen("chat");
@@ -32,7 +35,12 @@ export default function ChatScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {currentScreen === "inbox" && <InboxScreen onOpenChat={openChat} />}
+      {currentScreen === "inbox" && (
+        <InboxScreen
+          onOpenChat={openChat}
+          onCompose={() => setShowSearchModal(true)}
+        />
+      )}
 
       {currentScreen === "chat" && selectedConversation && (
         <ChatRoomScreen
@@ -51,6 +59,12 @@ export default function ChatScreen() {
           onBack={backToChat}
         />
       )}
+
+      <SearchUserModal
+        visible={showSearchModal}
+        onClose={() => setShowSearchModal(false)}
+        onOpenChat={openChat}
+      />
     </SafeAreaView>
   );
 }
