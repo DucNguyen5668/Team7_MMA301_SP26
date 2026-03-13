@@ -7,6 +7,7 @@ import {
   Image,
   TouchableOpacity,
   Alert,
+  RefreshControl,
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
@@ -20,6 +21,7 @@ export default function ManageScreen() {
   const navigation: any = useNavigation();
 
   const [products, setProducts] = useState<any[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
 
   useFocusEffect(
     React.useCallback(() => {

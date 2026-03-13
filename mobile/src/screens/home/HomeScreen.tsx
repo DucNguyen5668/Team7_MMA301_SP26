@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useCallback } from "react";
 import {
   View,
   Text,
@@ -7,32 +7,55 @@ import {
   FlatList,
   Image,
   TouchableOpacity,
+  RefreshControl,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { API } from "../../services/api";
 import { AuthContext } from "../../context/authContext";
 import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect } from "@react-navigation/native"; // ← thêm import này
 
 export default function HomeScreen() {
   const [products, setProducts] = useState<any[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
   const { user } = useContext(AuthContext);
   const navigation: any = useNavigation();
 
+  // Wrap fetchProducts bằng useCallback để tránh tạo hàm mới mỗi render
+  const fetchProducts = useCallback(async () => {
+    if (!user?.id) return; // tránh gọi nếu chưa login
+
+    try {
+      const res = await API.get(`/products?excludeOwner=${user.id}`);
+      console.log("Sản phẩm mới nhất:", res.data.length, "sản phẩm");
+      setProducts(res.data);
+    } catch (error) {
+      console.log("Lỗi fetch sản phẩm:", error);
+    }
+  }, [user?.id]); // dependency: chỉ refetch nếu user.id thay đổi
+
+  // Load lần đầu khi component mount (nếu cần)
   useEffect(() => {
     if (user) {
       fetchProducts();
     }
-  }, [user]);
+  }, [fetchProducts]);
 
-  const fetchProducts = async () => {
-    try {
-      const res = await API.get(`/products?excludeOwner=${user.id}`);
-      setProducts(res.data);
-    } catch (error) {
-      console.log(error);
-    }
-  };
+  // Hàm xử lý pull-to-refresh
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchProducts();
+    setRefreshing(false);
+  }, [fetchProducts]);
+
+  // Load lại mỗi khi màn hình được focus (click tab Home)
+  useFocusEffect(
+    useCallback(() => {
+      console.log("HomeScreen focused → fetch lại data");
+      fetchProducts();
+    }, [fetchProducts]),
+  );
 
   const renderItem = ({ item }: any) => (
     <TouchableOpacity
@@ -78,6 +101,17 @@ export default function HomeScreen() {
           {renderCategories()}
           {renderTabs()}
         </>
+      }
+      // Thêm pull-to-refresh ở đây
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          colors={["#FFD500", "#FFC400"]} // màu vàng của header cho đẹp
+          tintColor="#FFD500"
+          title="Đang làm mới..." // text hiển thị khi kéo (Android)
+          titleColor="#333"
+        />
       }
     />
   );

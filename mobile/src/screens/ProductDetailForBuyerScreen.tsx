@@ -16,6 +16,41 @@ export default function ProductDetailForBuyerScreen({ route }: any) {
 
   const [product, setProduct] = useState<any>(null);
 
+  // Hàm tính thời gian đã trôi qua (relative time)
+  const timeAgo = (timestamp: string | Date | number): string => {
+    const now = new Date();
+    const past = new Date(timestamp);
+    const diffMs = now.getTime() - past.getTime();
+
+    const seconds = Math.floor(diffMs / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+    const weeks = Math.floor(days / 7);
+    const months = Math.floor(days / 30);
+    const years = Math.floor(days / 365);
+
+    if (seconds < 60) {
+      return seconds <= 1 ? "vừa xong" : `${seconds} giây trước`;
+    }
+    if (minutes < 60) {
+      return minutes === 1 ? "1 phút trước" : `${minutes} phút trước`;
+    }
+    if (hours < 24) {
+      return hours === 1 ? "1 giờ trước" : `${hours} giờ trước`;
+    }
+    if (days < 7) {
+      return days === 1 ? "1 ngày trước" : `${days} ngày trước`;
+    }
+    if (weeks < 4) {
+      return weeks === 1 ? "1 tuần trước" : `${weeks} tuần trước`;
+    }
+    if (months < 12) {
+      return months === 1 ? "1 tháng trước" : `${months} tháng trước`;
+    }
+    return years === 1 ? "1 năm trước" : `${years} năm trước`;
+  };
+
   useEffect(() => {
     fetchProduct();
   }, []);
@@ -41,7 +76,22 @@ export default function ProductDetailForBuyerScreen({ route }: any) {
             {Number(product.price).toLocaleString()} đ
           </Text>
 
-          <Text style={styles.views}>👁 {product.views} lượt xem</Text>
+          <View style={styles.metaRow}>
+            <View style={styles.metaItem}>
+              <Ionicons name="eye-outline" size={16} color="#666" />
+              <Text style={styles.metaText}>{product.views || 0} lượt xem</Text>
+            </View>
+
+            {/* Thời gian đăng */}
+            <View style={styles.metaItem}>
+              <Ionicons name="time-outline" size={16} color="#666" />
+              <Text style={styles.metaText}>
+                {product.createdAt
+                  ? timeAgo(product.createdAt)
+                  : "Không xác định"}
+              </Text>
+            </View>
+          </View>
 
           {/* DESCRIPTION */}
           <Text style={styles.section}>Mô tả</Text>
@@ -76,7 +126,20 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 280,
   },
-
+  metaItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginRight: 20,
+  },
+  metaText: {
+    fontSize: 14,
+    color: "#666",
+    marginLeft: 6,
+  },
+  metaRow: {
+    flexDirection: "row",
+    marginBottom: 24,
+  },
   container: {
     padding: 15,
     backgroundColor: "#fff",

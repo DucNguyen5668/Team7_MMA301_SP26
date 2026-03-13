@@ -86,10 +86,9 @@ module.exports.productDetail = async (req, res) => {
   try {
     const { userId } = req.query;
 
-    const product = await Product.findById(req.params.id).populate(
-      "ownerId",
-      "fullName email",
-    );
+    const product = await Product.findById(req.params.id)
+      .populate("ownerId", "fullName email")
+      .select("+createdAt");
 
     if (!product) {
       return res.status(404).json({ message: "Sản phẩm không tồn tại" });

@@ -21,6 +21,41 @@ export default function ProductDetailScreen({ route }: any) {
   const [product, setProduct] = useState<any>(null);
   const { user } = useContext(AuthContext);
 
+  // Hàm tính thời gian đã trôi qua (relative time)
+  const timeAgo = (timestamp: string | Date | number): string => {
+    const now = new Date();
+    const past = new Date(timestamp);
+    const diffMs = now.getTime() - past.getTime();
+
+    const seconds = Math.floor(diffMs / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+    const weeks = Math.floor(days / 7);
+    const months = Math.floor(days / 30);
+    const years = Math.floor(days / 365);
+
+    if (seconds < 60) {
+      return seconds <= 1 ? "vừa xong" : `${seconds} giây trước`;
+    }
+    if (minutes < 60) {
+      return minutes === 1 ? "1 phút trước" : `${minutes} phút trước`;
+    }
+    if (hours < 24) {
+      return hours === 1 ? "1 giờ trước" : `${hours} giờ trước`;
+    }
+    if (days < 7) {
+      return days === 1 ? "1 ngày trước" : `${days} ngày trước`;
+    }
+    if (weeks < 4) {
+      return weeks === 1 ? "1 tuần trước" : `${weeks} tuần trước`;
+    }
+    if (months < 12) {
+      return months === 1 ? "1 tháng trước" : `${months} tháng trước`;
+    }
+    return years === 1 ? "1 năm trước" : `${years} năm trước`;
+  };
+
   useEffect(() => {
     fetchProduct();
   }, []);
@@ -94,11 +129,15 @@ export default function ProductDetailScreen({ route }: any) {
               <Text style={styles.metaText}>{product.views || 0} lượt xem</Text>
             </View>
 
-            {/* Nếu backend có trường createdAt thì thêm */}
-            {/* <View style={styles.metaItem}>
+            {/* Thời gian đăng */}
+            <View style={styles.metaItem}>
               <Ionicons name="time-outline" size={16} color="#666" />
-              <Text style={styles.metaText}>Đăng 2 ngày trước</Text>
-            </View> */}
+              <Text style={styles.metaText}>
+                {product.createdAt
+                  ? timeAgo(product.createdAt)
+                  : "Không xác định"}
+              </Text>
+            </View>
           </View>
 
           {/* Mô tả */}
