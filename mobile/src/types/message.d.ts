@@ -22,6 +22,7 @@ export interface MessageBackend {
   createdAt: Date;
   updatedAt: Date;
   hasMore: boolean;
+  attachment?: MessageAttachment;
 }
 
 export interface ConversationBackend {

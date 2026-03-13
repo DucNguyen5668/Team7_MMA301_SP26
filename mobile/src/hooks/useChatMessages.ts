@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { io, Socket } from "socket.io-client";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { IP_ADDRESS } from "../constants/ip";
-import { Message } from "../types/message";
+import { Message, MessageBackend, User } from "../types/message";
 import * as FileSystem from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
 
@@ -11,9 +11,9 @@ import messageService from "../services/messageService";
 
 const SOCKET_URL = `http://${IP_ADDRESS}:5000`;
 
-function toMessage(msg: any, currentUserId: string): Message {
+function toMessage(msg: MessageBackend, currentUserId: string): Message {
   const isMe =
-    msg.sender === currentUserId || msg.sender?._id === currentUserId;
+    msg.sender === currentUserId || (msg.sender as User)?._id === currentUserId;
 
   const isRead = Array.isArray(msg.readBy)
     ? msg.readBy.includes(currentUserId)
@@ -22,7 +22,7 @@ function toMessage(msg: any, currentUserId: string): Message {
   let content = msg.content ?? "";
   let attachment = undefined;
 
-  if (msg.attachment?.data) {
+  if (msg.attachment) {
     attachment = {
       data: msg.attachment.data,
       type: msg.attachment.type,
@@ -137,7 +137,7 @@ export const useChatMessages = ({
 
       const data = await messageService.getMessages(conversationId, 1, 20);
 
-      const transformed: Message[] = data.messages.map((m: Message) =>
+      const transformed: Message[] = data.messages.map((m: MessageBackend) =>
         toMessage(m, currentUserId),
       );
 

@@ -23,6 +23,7 @@
     "expo-status-bar": "~3.0.9",
     "expo-video": "~3.0.15",
     "expo-video-thumbnails": "~10.0.8",
+    "lodash": "^4.17.23",
     "react": "19.1.0",
     "react-native": "0.81.5",
     "react-native-element-dropdown": "^2.12.4",

@@ -49,8 +49,6 @@ export default function ChatRoomScreen({
     (ImagePicker.ImagePickerAsset & { thumbnail?: string }) | null
   >(null);
 
-  console.log("pendingVideo", pendingVideo);
-
   const {
     messages,
     loading,
@@ -74,7 +72,7 @@ export default function ChatRoomScreen({
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: "images",
       allowsMultipleSelection: false,
-      quality: 0.8,
+      quality: 0.75,
       base64: false,
     });
 
@@ -91,7 +89,7 @@ export default function ChatRoomScreen({
       mediaTypes: "videos",
       allowsMultipleSelection: false,
       videoMaxDuration: 60,
-      // quality: ImagePicker.UIImagePickerControllerQualityType.Medium,
+      quality: ImagePicker.UIImagePickerControllerQualityType.Medium,
     });
 
     if (!result.canceled && result.assets.length > 0) {
