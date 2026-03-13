@@ -11,8 +11,11 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { useNavigation } from "@react-navigation/native";
 
 export default function HomeScreen() {
+  const navigation = useNavigation();
+
   return (
     <View style={{ flex: 1, backgroundColor: "#f5f5f5" }}>
       {/* HEADER */}
@@ -20,10 +23,14 @@ export default function HomeScreen() {
         <View style={styles.searchRow}>
           <Ionicons name="menu" size={24} color="black" />
 
-          <View style={styles.searchBox}>
+          <TouchableOpacity
+            style={styles.searchBox}
+            activeOpacity={0.8}
+            onPress={() => navigation.navigate("Search" as never)}
+          >
             <Ionicons name="search" size={18} color="#999" />
-            <TextInput placeholder="Tìm sản phẩm..." style={{ flex: 1 }} />
-          </View>
+            <Text style={{ flex: 1, color: "#999", fontSize: 14 }}>Tìm sản phẩm, bất động sản...</Text>
+          </TouchableOpacity>
 
           <Ionicons name="notifications-outline" size={24} color="black" />
         </View>
@@ -79,12 +86,14 @@ const products = [
     title: "RAM Kingston Fury Beast 8GB DDR4",
     price: "500.000 đ",
     image: "https://via.placeholder.com/200",
+    location: "Q. Cẩm Lệ, Đà Nẵng"
   },
   {
     id: "2",
     title: "iPhone 14 Plus 256GB",
     price: "9.500.000 đ",
     image: "https://via.placeholder.com/200",
+    location: "Q. Hải Châu, Đà Nẵng"
   },
 ];
 
@@ -103,6 +112,10 @@ const renderProducts = () => (
           {item.title}
         </Text>
         <Text style={styles.price}>{item.price}</Text>
+        <View style={styles.locationRow}>
+          <Ionicons name="location-outline" size={12} color="#888" />
+          <Text style={styles.locationText} numberOfLines={1}>{item.location}</Text>
+        </View>
       </View>
     )}
   />
@@ -175,10 +188,23 @@ const styles = StyleSheet.create({
   },
   title: {
     marginTop: 5,
+    fontSize: 13,
   },
   price: {
     color: "red",
     fontWeight: "bold",
     marginTop: 5,
+    fontSize: 14,
+  },
+  locationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 6,
+    gap: 2,
+  },
+  locationText: {
+    fontSize: 10,
+    color: "#888",
+    flex: 1,
   },
 });

@@ -3,10 +3,10 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 
 import HomeScreen from "../screens/home/HomeScreen";
-import ManageScreen from "../screens/ManageScreen";
 import PostScreen from "../screens/PostScreen";
 import ChatScreen from "../screens/ChatScreen";
 import ProfileScreen from "../screens/ProfileScreen";
+import SearchScreen from "../screens/SearchScreen";
 
 const Tab = createBottomTabNavigator();
 
@@ -15,6 +15,16 @@ export default function BottomTabs() {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
+        tabBarActiveTintColor: "#6C3DE0",
+        tabBarInactiveTintColor: "#999",
+        tabBarStyle: {
+          borderTopWidth: 0,
+          elevation: 10,
+          shadowOpacity: 0.1,
+          height: 60,
+          paddingBottom: 8,
+        },
+        tabBarLabelStyle: { fontSize: 10, fontWeight: "600" },
       }}
     >
       <Tab.Screen
@@ -29,12 +39,12 @@ export default function BottomTabs() {
       />
 
       <Tab.Screen
-        name="Manage"
-        component={ManageScreen}
+        name="Search"
+        component={SearchScreen}
         options={{
-          tabBarLabel: "Quản lý tin",
+          tabBarLabel: "Khám phá",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="pricetag-outline" size={size} color={color} />
+            <Ionicons name="compass" size={size} color={color} />
           ),
         }}
       />
