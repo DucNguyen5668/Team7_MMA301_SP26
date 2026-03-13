@@ -135,34 +135,6 @@ export default function InboxScreen({
     0,
   );
 
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FDD835" />
-        <Text style={styles.loadingText}>Đang tải tin nhắn...</Text>
-      </View>
-    );
-  }
-
-  if (error && conversations.length === 0) {
-    return (
-      <View style={styles.container}>
-        <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-        <View style={styles.errorState}>
-          <Ionicons name="alert-circle-outline" size={80} color="#FF5722" />
-          <Text style={styles.errorTitle}>Đã xảy ra lỗi</Text>
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity
-            style={styles.retryButton}
-            onPress={fetchConversations}
-          >
-            <Text style={styles.retryButtonText}>Thử lại</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
@@ -232,36 +204,58 @@ export default function InboxScreen({
         </View>
       </LinearGradient>
 
-      <FlatList
-        data={conversations}
-        renderItem={({ item }) => (
-          <ConversationItem item={item} onPress={onOpenChat} />
-        )}
-        keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={
-          conversations.length === 0
-            ? styles.emptyListContent
-            : styles.listContent
-        }
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={["#FDD835"]}
-            tintColor="#FDD835"
-          />
-        }
-        ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <Ionicons name="chatbubbles-outline" size={80} color="#ddd" />
-            <Text style={styles.emptyStateTitle}>Chưa có tin nhắn</Text>
-            <Text style={styles.emptyStateText}>
-              Các cuộc trò chuyện của bạn sẽ xuất hiện ở đây
-            </Text>
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#FDD835" />
+          <Text style={styles.loadingText}>Đang tải tin nhắn...</Text>
+        </View>
+      ) : error && conversations.length === 0 ? (
+        <View style={styles.container}>
+          <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+          <View style={styles.errorState}>
+            <Ionicons name="alert-circle-outline" size={80} color="#FF5722" />
+            <Text style={styles.errorTitle}>Đã xảy ra lỗi</Text>
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity
+              style={styles.retryButton}
+              onPress={fetchConversations}
+            >
+              <Text style={styles.retryButtonText}>Thử lại</Text>
+            </TouchableOpacity>
           </View>
-        }
-      />
+        </View>
+      ) : (
+        <FlatList
+          data={conversations}
+          renderItem={({ item }) => (
+            <ConversationItem item={item} onPress={onOpenChat} />
+          )}
+          keyExtractor={(item) => item.id.toString()}
+          contentContainerStyle={
+            conversations.length === 0
+              ? styles.emptyListContent
+              : styles.listContent
+          }
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={["#FDD835"]}
+              tintColor="#FDD835"
+            />
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <Ionicons name="chatbubbles-outline" size={80} color="#ddd" />
+              <Text style={styles.emptyStateTitle}>Chưa có tin nhắn</Text>
+              <Text style={styles.emptyStateText}>
+                Các cuộc trò chuyện của bạn sẽ xuất hiện ở đây
+              </Text>
+            </View>
+          }
+        />
+      )}
     </View>
   );
 }

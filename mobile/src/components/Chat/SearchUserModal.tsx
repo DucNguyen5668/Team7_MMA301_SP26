@@ -14,10 +14,8 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { API } from "../../services/api";
-import { Conversation } from "../../types/message";
-import { formatChatTimestamp } from "../../utils";
 
-interface UserResult {
+export interface UserResult {
   _id: string;
   fullName: string;
   email: string;
@@ -27,18 +25,17 @@ interface UserResult {
 interface SearchUserModalProps {
   visible: boolean;
   onClose: () => void;
-  onOpenChat: (conversation: Conversation) => void;
+  onSelectUser: (user: UserResult) => void; // chỉ trả user, không tạo conv
 }
 
 export default function SearchUserModal({
   visible,
   onClose,
-  onOpenChat,
+  onSelectUser,
 }: SearchUserModalProps) {
   const [query, setQuery] = useState("");
   const [users, setUsers] = useState<UserResult[]>([]);
   const [searching, setSearching] = useState(false);
-  const [creating, setCreating] = useState<string | null>(null); // userId đang tạo room
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<TextInput>(null);
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -61,9 +58,7 @@ export default function SearchUserModal({
           duration: 200,
           useNativeDriver: true,
         }),
-      ]).start(() => {
-        inputRef.current?.focus();
-      });
+      ]).start(() => inputRef.current?.focus());
     } else {
       slideAnim.setValue(50);
       opacityAnim.setValue(0);
@@ -81,7 +76,6 @@ export default function SearchUserModal({
       const { data } = await API.get("/conversations/search", {
         params: { q: text.trim() },
       });
-      console.log(data);
       setUsers(data);
     } catch (err: any) {
       setError(err.response?.data?.message || "Không thể tìm kiếm");
@@ -91,46 +85,15 @@ export default function SearchUserModal({
     }
   }, []);
 
-  // Debounce search
   useEffect(() => {
     const t = setTimeout(() => searchUsers(query), query ? 350 : 0);
     return () => clearTimeout(t);
   }, [query, searchUsers]);
 
-  const handleSelectUser = async (user: UserResult) => {
-    try {
-      Keyboard.dismiss();
-      setCreating(user._id);
-      setError(null);
-
-      const { data } = await API.post("/conversations", {
-        userId: user._id,
-      });
-
-      const conversation: Conversation = {
-        id: data._id,
-        opponentId: user._id,
-        opponentName: user.fullName,
-        opponentAvatar:
-          user.avatar ||
-          `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 70)}`,
-        lastMessage: data.lastMessage?.content || "",
-        lastMessageTime: new Date(
-          data.lastMessage?.createdAt || data.updatedAt || Date.now(),
-        ),
-        timestamp: formatChatTimestamp(
-          data.lastMessage?.createdAt || data.updatedAt || new Date(),
-        ),
-        unread: 0,
-      };
-
-      onClose();
-      onOpenChat(conversation);
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Không thể tạo cuộc trò chuyện");
-    } finally {
-      setCreating(null);
-    }
+  const handleSelectUser = (user: UserResult) => {
+    Keyboard.dismiss();
+    onClose();
+    onSelectUser(user);
   };
 
   const handleClose = () => {
@@ -139,7 +102,6 @@ export default function SearchUserModal({
   };
 
   const renderUser = ({ item }: { item: UserResult }) => {
-    const isCreatingThis = creating === item._id;
     const avatarUrl =
       item.avatar ||
       `https://i.pravatar.cc/150?img=${parseInt(item._id.slice(-2), 16) % 70}`;
@@ -148,7 +110,6 @@ export default function SearchUserModal({
       <TouchableOpacity
         style={styles.userItem}
         onPress={() => handleSelectUser(item)}
-        disabled={!!creating}
         activeOpacity={0.7}
       >
         <View style={styles.avatarWrapper}>
@@ -162,13 +123,7 @@ export default function SearchUserModal({
             {item.email}
           </Text>
         </View>
-        <View style={styles.actionIcon}>
-          {isCreatingThis ? (
-            <ActivityIndicator size="small" color="#FDD835" />
-          ) : (
-            <Ionicons name="chatbubble-outline" size={20} color="#FDD835" />
-          )}
-        </View>
+        <Ionicons name="chevron-forward" size={18} color="#ccc" />
       </TouchableOpacity>
     );
   };
@@ -189,16 +144,11 @@ export default function SearchUserModal({
       <Animated.View
         style={[
           styles.sheet,
-          {
-            opacity: opacityAnim,
-            transform: [{ translateY: slideAnim }],
-          },
+          { opacity: opacityAnim, transform: [{ translateY: slideAnim }] },
         ]}
       >
-        {/* Handle bar */}
         <View style={styles.handleBar} />
 
-        {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Tìm người dùng</Text>
           <TouchableOpacity style={styles.closeBtn} onPress={handleClose}>
@@ -206,7 +156,6 @@ export default function SearchUserModal({
           </TouchableOpacity>
         </View>
 
-        {/* Search input */}
         <View style={styles.searchWrapper}>
           <Ionicons
             name="search"
@@ -232,7 +181,6 @@ export default function SearchUserModal({
           )}
         </View>
 
-        {/* Error */}
         {error && (
           <View style={styles.errorBanner}>
             <Ionicons name="alert-circle-outline" size={15} color="#FF5722" />
@@ -240,7 +188,6 @@ export default function SearchUserModal({
           </View>
         )}
 
-        {/* List */}
         <FlatList
           data={users}
           keyExtractor={(item) => item._id}
@@ -313,11 +260,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#f2f2f2",
   },
-  headerTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#1a1a1a",
-  },
+  headerTitle: { fontSize: 17, fontWeight: "700", color: "#1a1a1a" },
   closeBtn: {
     width: 32,
     height: 32,
@@ -336,11 +279,7 @@ const styles = StyleSheet.create({
     height: 46,
   },
   searchIcon: { marginRight: 8 },
-  searchInput: {
-    flex: 1,
-    fontSize: 15,
-    color: "#222",
-  },
+  searchInput: { flex: 1, fontSize: 15, color: "#222" },
   errorBanner: {
     flexDirection: "row",
     alignItems: "center",
@@ -371,11 +310,6 @@ const styles = StyleSheet.create({
   userInfo: { flex: 1 },
   userName: { fontSize: 15, fontWeight: "600", color: "#1a1a1a" },
   userEmail: { fontSize: 13, color: "#888", marginTop: 2 },
-  actionIcon: { width: 36, alignItems: "center" },
-  emptyState: {
-    alignItems: "center",
-    paddingVertical: 48,
-    gap: 12,
-  },
+  emptyState: { alignItems: "center", paddingVertical: 48, gap: 12 },
   emptyText: { fontSize: 14, color: "#bbb", textAlign: "center" },
 });

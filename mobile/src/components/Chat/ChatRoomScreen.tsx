@@ -21,15 +21,21 @@ import ChatInputBar from "./ChatInputBar";
 import AttachMenu from "./AttachMenu";
 import ImagePreviewModal from "./ImagePreviewModal";
 import VideoModal from "./VideoModal";
+import { UserResult } from "./SearchUserModal";
 
 interface ChatRoomScreenProps {
-  conversation: Conversation;
+  // Một trong hai phải có:
+  conversation: Conversation | null; // chat đã tồn tại
+  tempUser?: UserResult | null; // chat chưa tạo conversation
+  onConversationCreated?: (conv: Conversation) => void; // callback sau khi tạo conv
   onBack: () => void;
   onViewProfile: () => void;
 }
 
 export default function ChatRoomScreen({
   conversation,
+  tempUser,
+  onConversationCreated,
   onBack,
   onViewProfile,
 }: ChatRoomScreenProps) {
@@ -43,8 +49,6 @@ export default function ChatRoomScreen({
 
   const [pendingImage, setPendingImage] =
     useState<ImagePicker.ImagePickerAsset | null>(null);
-
-  const flatListRef = useRef<FlatList>(null);
   const [pendingVideo, setPendingVideo] = useState<
     (ImagePicker.ImagePickerAsset & { thumbnail?: string }) | null
   >(null);
@@ -61,9 +65,23 @@ export default function ChatRoomScreen({
     loadMoreMessages,
     deleteMessage,
   } = useChatMessages({
-    conversationId: conversation.id.toString(),
+    conversationId: conversation?.id?.toString() ?? null,
+    targetUserId: tempUser?._id ?? null,
     currentUserId: user.id,
+    onConversationCreated,
   });
+
+  // Header info: dùng conversation nếu có, fallback sang tempUser
+  const headerName = conversation?.opponentName ?? tempUser?.fullName ?? "";
+
+  const headerAvatar =
+    conversation?.opponentAvatar ??
+    (tempUser
+      ? tempUser.avatar ||
+        `https://i.pravatar.cc/150?img=${
+          parseInt(tempUser._id.slice(-2), 16) % 70
+        }`
+      : "");
 
   const handlePickImage = async () => {
     setShowAttachMenu(false);
@@ -98,9 +116,7 @@ export default function ChatRoomScreen({
         Alert.alert("Video phải ngắn hơn 60 giây!");
         return;
       }
-      // Generate thumbnail từ local URI trước khi encode base64
       const thumbnail = await generateVideoThumbnail(asset.uri);
-      console.log("thumbnail", thumbnail);
       setPendingVideo({ ...asset, thumbnail: thumbnail ?? undefined });
     }
   };
@@ -132,14 +148,16 @@ export default function ChatRoomScreen({
     }
   };
 
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FDD835" />
-        <Text style={styles.loadingText}>Đang tải tin nhắn...</Text>
-      </View>
-    );
-  }
+  const fallBackConversation: Conversation = {
+    id: "",
+    opponentId: tempUser?._id ?? "",
+    opponentName: headerName,
+    opponentAvatar: headerAvatar,
+    lastMessage: "",
+    lastMessageTime: new Date(),
+    timestamp: "",
+    unread: 0,
+  };
 
   return (
     <KeyboardAvoidingView
@@ -147,8 +165,9 @@ export default function ChatRoomScreen({
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={30}
     >
+      {/* Header dùng dữ liệu từ conversation hoặc tempUser */}
       <ChatHeader
-        conversation={conversation}
+        conversation={conversation ?? fallBackConversation}
         onBack={onBack}
         onViewProfile={onViewProfile}
       />
@@ -160,44 +179,54 @@ export default function ChatRoomScreen({
         </View>
       )}
 
-      <FlatList
-        ref={flatListRef}
-        data={messages}
-        renderItem={({ item }: { item: Message }) => (
-          <MessageBubble
-            item={item}
-            onImagePress={setImagePreview}
-            onVideoPress={(messageId) => {
-              setShowVideo(true);
-              setVideoMessageId(messageId);
-            }}
-            onDelete={deleteMessage}
-            isFirstMessage={item.id === messages[0].id}
-          />
-        )}
-        keyExtractor={(item, index) => item.id?.toString() || index.toString()}
-        contentContainerStyle={styles.messagesList}
-        showsVerticalScrollIndicator={false}
-        inverted
-        onEndReached={loadMoreMessages}
-        onEndReachedThreshold={0.2}
-        ListHeaderComponent={
-          loadingMore ? (
-            <View style={styles.loadMoreContainer}>
-              <ActivityIndicator size="small" color="#FDD835" />
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#FDD835" />
+          <Text style={styles.loadingText}>Đang tải tin nhắn...</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={messages}
+          renderItem={({ item }: { item: Message }) => (
+            <MessageBubble
+              item={item}
+              onImagePress={setImagePreview}
+              onVideoPress={(messageId) => {
+                setShowVideo(true);
+                setVideoMessageId(messageId);
+              }}
+              onDelete={deleteMessage}
+              isFirstMessage={item.id === messages[0]?.id}
+            />
+          )}
+          keyExtractor={(item, index) =>
+            item.id?.toString() || index.toString()
+          }
+          contentContainerStyle={styles.messagesList}
+          showsVerticalScrollIndicator={false}
+          inverted
+          onEndReached={loadMoreMessages}
+          onEndReachedThreshold={0.2}
+          ListHeaderComponent={
+            loadingMore ? (
+              <View style={styles.loadMoreContainer}>
+                <ActivityIndicator size="small" color="#FDD835" />
+              </View>
+            ) : null
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyMessages}>
+              <Ionicons name="chatbubbles-outline" size={60} color="#ddd" />
+              <Text style={styles.emptyMessagesText}>Chưa có tin nhắn nào</Text>
+              <Text style={styles.emptyMessagesSubtext}>
+                {tempUser
+                  ? `Gửi tin nhắn để bắt đầu trò chuyện với ${tempUser.fullName}`
+                  : "Gửi tin nhắn đầu tiên để bắt đầu trò chuyện"}
+              </Text>
             </View>
-          ) : null
-        }
-        ListEmptyComponent={
-          <View style={styles.emptyMessages}>
-            <Ionicons name="chatbubbles-outline" size={60} color="#ddd" />
-            <Text style={styles.emptyMessagesText}>Chưa có tin nhắn nào</Text>
-            <Text style={styles.emptyMessagesSubtext}>
-              Gửi tin nhắn đầu tiên để bắt đầu trò chuyện
-            </Text>
-          </View>
-        }
-      />
+          }
+        />
+      )}
 
       <ChatInputBar
         value={messageInput}
@@ -236,21 +265,14 @@ export default function ChatRoomScreen({
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f5f5f5",
-  },
+  container: { flex: 1, backgroundColor: "#f5f5f5" },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#f5f5f5",
   },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: "#666",
-  },
+  loadingText: { marginTop: 16, fontSize: 16, color: "#666" },
   errorBanner: {
     flexDirection: "row",
     alignItems: "center",
@@ -261,20 +283,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#FFE0B2",
   },
-  errorText: {
-    flex: 1,
-    fontSize: 13,
-    color: "#FF5722",
-  },
-  messagesList: {
-    padding: 16,
-    paddingBottom: 8,
-    flexGrow: 1,
-  },
-  loadMoreContainer: {
-    paddingVertical: 16,
-    alignItems: "center",
-  },
+  errorText: { flex: 1, fontSize: 13, color: "#FF5722" },
+  messagesList: { padding: 16, paddingBottom: 8, flexGrow: 1 },
+  loadMoreContainer: { paddingVertical: 16, alignItems: "center" },
   emptyMessages: {
     flex: 1,
     justifyContent: "center",
@@ -292,5 +303,6 @@ const styles = StyleSheet.create({
     color: "#999",
     marginTop: 8,
     textAlign: "center",
+    paddingHorizontal: 32,
   },
 });

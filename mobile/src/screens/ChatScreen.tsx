@@ -1,28 +1,49 @@
 import React, { useState } from "react";
-import { View, StyleSheet } from "react-native";
+import { StyleSheet } from "react-native";
 import InboxScreen from "../components/Chat/InboxScreen";
 import ChatRoomScreen from "../components/Chat/ChatRoomScreen";
 import ProfileScreen from "../components/Rating/RatingProfileScreen";
-import SearchUserModal from "../components/Chat/SearchUserModal";
+import SearchUserModal, {
+  UserResult,
+} from "../components/Chat/SearchUserModal";
 import { Conversation } from "../types/message";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+type TCurrentScreen = "inbox" | "chat" | "profile";
+
 export default function ChatScreen() {
-  const [currentScreen, setCurrentScreen] = useState<
-    "inbox" | "chat" | "profile"
-  >("inbox");
+  const [currentScreen, setCurrentScreen] = useState<TCurrentScreen>("inbox");
   const [selectedConversation, setSelectedConversation] =
     useState<Conversation | null>(null);
+
+  // User được chọn từ search nhưng chưa có conversation
+  const [tempUser, setTempUser] = useState<UserResult | null>(null);
   const [showSearchModal, setShowSearchModal] = useState(false);
 
+  // Mở chat với conversation đã tồn tại (từ InboxScreen)
   const openChat = (conversation: Conversation) => {
+    setTempUser(null);
     setSelectedConversation(conversation);
     setCurrentScreen("chat");
+  };
+
+  // Mở temp chat sau khi chọn user từ SearchModal (chưa có conversation)
+  const openTempChat = (user: UserResult) => {
+    setTempUser(user);
+    setSelectedConversation(null);
+    setCurrentScreen("chat");
+  };
+
+  // Callback từ ChatRoomScreen khi tin nhắn đầu tiên được gửi và conv được tạo
+  const onConversationCreated = (conversation: Conversation) => {
+    setTempUser(null);
+    setSelectedConversation(conversation);
   };
 
   const backToInbox = () => {
     setCurrentScreen("inbox");
     setSelectedConversation(null);
+    setTempUser(null);
   };
 
   const openProfile = () => {
@@ -42,9 +63,11 @@ export default function ChatScreen() {
         />
       )}
 
-      {currentScreen === "chat" && selectedConversation && (
+      {currentScreen === "chat" && (selectedConversation || tempUser) && (
         <ChatRoomScreen
           conversation={selectedConversation}
+          tempUser={tempUser}
+          onConversationCreated={onConversationCreated}
           onBack={backToInbox}
           onViewProfile={openProfile}
         />
@@ -63,15 +86,15 @@ export default function ChatScreen() {
       <SearchUserModal
         visible={showSearchModal}
         onClose={() => setShowSearchModal(false)}
-        onOpenChat={openChat}
+        onSelectUser={(user) => {
+          setShowSearchModal(false);
+          openTempChat(user);
+        }}
       />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-  },
+  container: { flex: 1, backgroundColor: "#fff" },
 });
