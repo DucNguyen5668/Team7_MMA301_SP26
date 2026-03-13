@@ -7,7 +7,10 @@ import ManageScreen from "../screens/ManageScreen";
 import PostScreen from "../screens/PostScreen";
 import ChatScreen from "../screens/ChatScreen";
 import ProfileScreen from "../screens/ProfileScreen";
+// import { createNativeStackNavigator } from "@react-navigation/native-stack";
+// import { RootStackParamList } from "./types";
 
+// const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator();
 
 export default function BottomTabs() {

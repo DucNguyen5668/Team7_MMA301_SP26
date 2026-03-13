@@ -45,11 +45,7 @@ type Category = {
 };
 
 const categories: Category[] = [
-  { id: "1", name: "Bất động sản", icon: "home-outline" },
-  { id: "2", name: "Xe cộ", icon: "car-outline" },
-  { id: "3", name: "Thú cưng", icon: "paw-outline" },
   { id: "4", name: "Đồ gia dụng", icon: "bed-outline" },
-  { id: "5", name: "Việc làm", icon: "briefcase-outline" },
   { id: "6", name: "Điện tử", icon: "phone-portrait-outline" },
 ];
 
@@ -70,7 +66,6 @@ const renderTabs = () => (
     <Text style={styles.activeTab}>Dành cho bạn</Text>
     <Text style={styles.tab}>Gần bạn</Text>
     <Text style={styles.tab}>Mới nhất</Text>
-    <Text style={styles.tab}>Video</Text>
   </View>
 );
 const products = [

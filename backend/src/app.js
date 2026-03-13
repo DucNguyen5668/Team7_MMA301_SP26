@@ -12,6 +12,8 @@ const authRoutes = require("./routes/authRoute");
 const conversationRoutes = require("./routes/conversationRoute");
 const messageRoutes = require("./routes/messageRoute");
 const ratingRoutes = require("./routes/ratingRoute");
+const categoriesRoutes = require("./routes/categoryRoute");
+const productRoutes = require("./routes/productRoutes");
 
 const app = express();
 const server = http.createServer(app);
@@ -25,5 +27,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/conversations", conversationRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/ratings", ratingRoutes);
+app.use("/api/categories", categoriesRoutes);
+app.use("/api/products", productRoutes);
 
 module.exports = { app, server };
