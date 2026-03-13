@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect, useContext } from "react";
 import {
   View,
   Text,
@@ -7,37 +7,82 @@ import {
   FlatList,
   Image,
   TouchableOpacity,
-  ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { API } from "../../services/api";
+import { AuthContext } from "../../context/authContext";
+import { useNavigation } from "@react-navigation/native";
 
 export default function HomeScreen() {
+  const [products, setProducts] = useState<any[]>([]);
+  const { user } = useContext(AuthContext);
+  const navigation: any = useNavigation();
+
+  useEffect(() => {
+    if (user) {
+      fetchProducts();
+    }
+  }, [user]);
+
+  const fetchProducts = async () => {
+    try {
+      const res = await API.get(`/products?excludeOwner=${user.id}`);
+      setProducts(res.data);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const renderItem = ({ item }: any) => (
+    <TouchableOpacity
+      style={styles.card}
+      onPress={() =>
+        navigation.navigate("ProductDetail", { productId: item._id })
+      }
+    >
+      <Image source={{ uri: item.image }} style={styles.image} />
+
+      <Text numberOfLines={2} style={styles.title}>
+        {item.title}
+      </Text>
+
+      <Text style={styles.price}>{Number(item.price).toLocaleString()} đ</Text>
+    </TouchableOpacity>
+  );
+
   return (
-    <View style={{ flex: 1, backgroundColor: "#f5f5f5" }}>
-      {/* HEADER */}
-      <LinearGradient colors={["#FFD500", "#FFC400"]} style={styles.header}>
-        <View style={styles.searchRow}>
-          <Ionicons name="menu" size={24} color="black" />
+    <FlatList
+      data={products}
+      numColumns={2}
+      keyExtractor={(item) => item._id}
+      columnWrapperStyle={{ justifyContent: "space-between" }}
+      renderItem={renderItem}
+      contentContainerStyle={{ padding: 10 }}
+      ListHeaderComponent={
+        <>
+          {/* HEADER */}
+          <LinearGradient colors={["#FFD500", "#FFC400"]} style={styles.header}>
+            <View style={styles.searchRow}>
+              <Ionicons name="menu" size={24} color="black" />
 
-          <View style={styles.searchBox}>
-            <Ionicons name="search" size={18} color="#999" />
-            <TextInput placeholder="Tìm sản phẩm..." style={{ flex: 1 }} />
-          </View>
+              <View style={styles.searchBox}>
+                <Ionicons name="search" size={18} color="#999" />
+                <TextInput placeholder="Tìm sản phẩm..." style={{ flex: 1 }} />
+              </View>
 
-          <Ionicons name="notifications-outline" size={24} color="black" />
-        </View>
-      </LinearGradient>
+              <Ionicons name="notifications-outline" size={24} color="black" />
+            </View>
+          </LinearGradient>
 
-      {/* BODY */}
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {renderCategories()}
-        {renderTabs()}
-        {renderProducts()}
-      </ScrollView>
-    </View>
+          {renderCategories()}
+          {renderTabs()}
+        </>
+      }
+    />
   );
 }
+
 type Category = {
   id: string;
   name: string;
@@ -45,8 +90,9 @@ type Category = {
 };
 
 const categories: Category[] = [
-  { id: "4", name: "Đồ gia dụng", icon: "bed-outline" },
-  { id: "6", name: "Điện tử", icon: "phone-portrait-outline" },
+  { id: "1", name: "Việc làm", icon: "briefcase-outline" },
+  { id: "2", name: "Điện tử", icon: "phone-portrait-outline" },
+  { id: "3", name: "Sản phẩm khác", icon: "cube-outline" },
 ];
 
 const renderCategories = () => (
@@ -61,6 +107,7 @@ const renderCategories = () => (
     ))}
   </View>
 );
+
 const renderTabs = () => (
   <View style={styles.tabs}>
     <Text style={styles.activeTab}>Dành cho bạn</Text>
@@ -68,51 +115,20 @@ const renderTabs = () => (
     <Text style={styles.tab}>Mới nhất</Text>
   </View>
 );
-const products = [
-  {
-    id: "1",
-    title: "RAM Kingston Fury Beast 8GB DDR4",
-    price: "500.000 đ",
-    image: "https://via.placeholder.com/200",
-  },
-  {
-    id: "2",
-    title: "iPhone 14 Plus 256GB",
-    price: "9.500.000 đ",
-    image: "https://via.placeholder.com/200",
-  },
-];
 
-const renderProducts = () => (
-  <FlatList
-    data={products}
-    numColumns={2}
-    keyExtractor={(item) => item.id}
-    scrollEnabled={false}
-    columnWrapperStyle={{ justifyContent: "space-between" }}
-    contentContainerStyle={{ padding: 10 }}
-    renderItem={({ item }) => (
-      <View style={styles.card}>
-        <Image source={{ uri: item.image }} style={styles.image} />
-        <Text numberOfLines={2} style={styles.title}>
-          {item.title}
-        </Text>
-        <Text style={styles.price}>{item.price}</Text>
-      </View>
-    )}
-  />
-);
 const styles = StyleSheet.create({
   header: {
     paddingTop: 50,
     paddingBottom: 15,
     paddingHorizontal: 15,
   },
+
   searchRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
+
   searchBox: {
     flex: 1,
     flexDirection: "row",
@@ -122,40 +138,48 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: "center",
   },
+
   categoryContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
     padding: 15,
   },
+
   categoryItem: {
     width: "30%",
     alignItems: "center",
     marginBottom: 20,
   },
+
   categoryIcon: {
     backgroundColor: "#fff",
     padding: 15,
     borderRadius: 15,
     elevation: 3,
   },
+
   categoryText: {
     marginTop: 5,
     textAlign: "center",
   },
+
   tabs: {
     flexDirection: "row",
     paddingHorizontal: 15,
     marginBottom: 10,
   },
+
   activeTab: {
     fontWeight: "bold",
     marginRight: 20,
   },
+
   tab: {
     color: "#999",
     marginRight: 20,
   },
+
   card: {
     backgroundColor: "#fff",
     width: "48%",
@@ -163,14 +187,17 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 10,
   },
+
   image: {
     width: "100%",
     height: 120,
     borderRadius: 10,
   },
+
   title: {
     marginTop: 5,
   },
+
   price: {
     color: "red",
     fontWeight: "bold",

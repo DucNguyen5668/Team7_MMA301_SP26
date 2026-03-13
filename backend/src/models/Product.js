@@ -35,6 +35,11 @@ const productSchema = new mongoose.Schema(
       default: "active",
     },
 
+    views: {
+      type: Number,
+      default: 0,
+    },
+
     ownerId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

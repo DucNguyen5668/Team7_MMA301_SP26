@@ -7,6 +7,9 @@ import ManageScreen from "../screens/ManageScreen";
 import PostScreen from "../screens/PostScreen";
 import ChatScreen from "../screens/ChatScreen";
 import ProfileScreen from "../screens/ProfileScreen";
+import HomeStack from "./HomeStack";
+import ManageStack from "./ManageStack";
+import ProductDetailScreen from "../screens/ProductDetailScreen";
 // import { createNativeStackNavigator } from "@react-navigation/native-stack";
 // import { RootStackParamList } from "./types";
 
@@ -22,7 +25,7 @@ export default function BottomTabs() {
     >
       <Tab.Screen
         name="Home"
-        component={HomeScreen}
+        component={HomeStack}
         options={{
           tabBarLabel: "Trang chủ",
           tabBarIcon: ({ color, size }) => (
@@ -33,7 +36,7 @@ export default function BottomTabs() {
 
       <Tab.Screen
         name="Manage"
-        component={ManageScreen}
+        component={ManageStack}
         options={{
           tabBarLabel: "Quản lý tin",
           tabBarIcon: ({ color, size }) => (

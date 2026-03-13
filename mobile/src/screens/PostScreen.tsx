@@ -34,6 +34,50 @@ export default function PostProductScreen() {
     fetchCategories();
   }, []);
 
+  const uploadImage = async (uri: string) => {
+    try {
+      // Lấy tên file và loại từ uri (tốt hơn hard-code)
+      const filename = uri.substring(uri.lastIndexOf("/") + 1);
+      const fileType = filename.endsWith("png") ? "image/png" : "image/jpeg";
+
+      const formData = new FormData();
+
+      formData.append("file", {
+        uri: uri,
+        name: filename || "photo.jpg",
+        type: fileType,
+      } as any);
+
+      formData.append("upload_preset", "mobile_upload");
+
+      const response = await fetch(
+        "https://api.cloudinary.com/v1_1/dfhu72t1o/image/upload",
+        {
+          method: "POST",
+          body: formData,
+          headers: {
+            "Content-Type": "multipart/form-data", // một số trường hợp cần thêm header này
+          },
+        },
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.log("Cloudinary error response:", errorText);
+        throw new Error(`Upload failed: ${response.status} - ${errorText}`);
+      }
+
+      const result = await response.json();
+      console.log("Cloudinary success:", result);
+
+      return result.secure_url;
+    } catch (error) {
+      console.error("Upload error:", error);
+      Alert.alert("Lỗi upload ảnh", "Không thể tải ảnh lên. Vui lòng thử lại.");
+      throw error;
+    }
+  };
+
   const fetchCategories = async () => {
     try {
       const res = await API.get("/categories");
@@ -60,22 +104,13 @@ export default function PostProductScreen() {
       return;
     }
 
-    console.log("USER:", user);
-
     if (!user) {
       Alert.alert("Bạn chưa đăng nhập");
       return;
     }
 
-    console.log({
-      title,
-      description,
-      price,
-      condition,
-      ownerId: user?._id,
-      categoryId: category,
-      image,
-    });
+    const imageUrl = await uploadImage(image);
+    console.log("IMAGE URL:", imageUrl);
 
     try {
       await API.post("/products", {
@@ -85,7 +120,7 @@ export default function PostProductScreen() {
         condition,
         ownerId: user.id,
         categoryId: category,
-        image,
+        image: imageUrl,
       });
 
       Alert.alert("Thành công", "Đăng tin thành công");
