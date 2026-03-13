@@ -1,85 +1,266 @@
 import React, { useState, useEffect, useContext } from "react";
-
-import { View, Text, StyleSheet, Image, ScrollView } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  ScrollView,
+  TouchableOpacity,
+  SafeAreaView,
+  Dimensions,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { API } from "../services/api";
 import { AuthContext } from "../context/authContext";
 
+const { width } = Dimensions.get("window");
+
 export default function ProductDetailScreen({ route }: any) {
   const { productId } = route.params;
-
   const [product, setProduct] = useState<any>(null);
+  const { user } = useContext(AuthContext);
 
   useEffect(() => {
     fetchProduct();
   }, []);
 
-  const { user } = useContext(AuthContext);
-
   const fetchProduct = async () => {
-    const res = await API.get(`/products/${productId}?userId=${user.id}`);
-
-    setProduct(res.data);
+    try {
+      const res = await API.get(`/products/${productId}?userId=${user?.id}`);
+      setProduct(res.data);
+    } catch (error) {
+      console.log("Lỗi tải chi tiết sản phẩm:", error);
+    }
   };
 
-  if (!product) return null;
+  if (!product) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text>Đang tải...</Text>
+      </View>
+    );
+  }
+
+  const isNew = product.condition === "new";
 
   return (
-    <ScrollView style={styles.container}>
-      <Image source={{ uri: product.image }} style={styles.image} />
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+        {/* Ảnh sản phẩm */}
+        <View style={styles.imageContainer}>
+          <Image
+            source={{ uri: product.image }}
+            style={styles.mainImage}
+            resizeMode="cover"
+          />
+          <LinearGradient
+            colors={["transparent", "rgba(0,0,0,0.6)"]}
+            style={styles.imageOverlay}
+          />
+        </View>
 
-      <View style={styles.content}>
-        <Text style={styles.title}>{product.title}</Text>
+        {/* Nội dung chính */}
+        <View style={styles.content}>
+          {/* Tiêu đề */}
+          <Text style={styles.title}>{product.title}</Text>
 
-        <Text style={styles.price}>
-          {Number(product.price).toLocaleString()} đ
-        </Text>
+          {/* Giá + tình trạng */}
+          <View style={styles.priceRow}>
+            <Text style={styles.price}>
+              {Number(product.price).toLocaleString("vi-VN")} ₫
+            </Text>
 
-        <Text style={styles.status}>
-          {product.condition === "new" ? "Mới" : "Đã sử dụng"}
-        </Text>
+            <View
+              style={[
+                styles.conditionBadge,
+                isNew ? styles.newBadge : styles.usedBadge,
+              ]}
+            >
+              <Text style={styles.conditionText}>
+                {isNew ? "Mới" : "Đã sử dụng"}
+              </Text>
+            </View>
+          </View>
 
-        <Text style={styles.views}>{product.views} lượt xem</Text>
+          {/* Thông tin phụ */}
+          <View style={styles.metaRow}>
+            <View style={styles.metaItem}>
+              <Ionicons name="eye-outline" size={16} color="#666" />
+              <Text style={styles.metaText}>{product.views || 0} lượt xem</Text>
+            </View>
 
-        <Text style={styles.description}>{product.description}</Text>
-      </View>
-    </ScrollView>
+            {/* Nếu backend có trường createdAt thì thêm */}
+            {/* <View style={styles.metaItem}>
+              <Ionicons name="time-outline" size={16} color="#666" />
+              <Text style={styles.metaText}>Đăng 2 ngày trước</Text>
+            </View> */}
+          </View>
+
+          {/* Mô tả */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Mô tả sản phẩm</Text>
+            <Text style={styles.description}>{product.description}</Text>
+          </View>
+
+          {/* Có thể thêm section khác: thông tin người bán, địa điểm, ... */}
+        </View>
+
+        {/* Khoảng trống để tránh bị che bởi nút bottom */}
+        <View style={{ height: 100 }} />
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#F8F9FA",
+  },
+  container: {
+    flex: 1,
+    backgroundColor: "#F8F9FA",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
 
-  image: {
+  // Ảnh
+  imageContainer: {
+    position: "relative",
     width: "100%",
-    height: 250,
+    height: width * 0.9, // vuông đẹp hơn
+  },
+  mainImage: {
+    width: "100%",
+    height: "100%",
+  },
+  imageOverlay: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 120,
   },
 
+  // Nội dung
   content: {
-    padding: 15,
+    padding: 20,
+    paddingTop: 16,
   },
-
   title: {
-    fontSize: 20,
-    fontWeight: "bold",
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#1A1A1A",
+    lineHeight: 32,
+    marginBottom: 12,
   },
-
+  priceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
   price: {
-    color: "red",
+    fontSize: 28,
+    fontWeight: "800",
+    color: "#E53935",
+  },
+  conditionBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  newBadge: {
+    backgroundColor: "#4CAF50",
+  },
+  usedBadge: {
+    backgroundColor: "#FF9800",
+  },
+  conditionText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 14,
+  },
+
+  metaRow: {
+    flexDirection: "row",
+    marginBottom: 24,
+  },
+  metaItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginRight: 20,
+  },
+  metaText: {
+    fontSize: 14,
+    color: "#666",
+    marginLeft: 6,
+  },
+
+  section: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
     fontSize: 18,
-    marginTop: 5,
+    fontWeight: "700",
+    color: "#333",
+    marginBottom: 12,
   },
-
-  status: {
-    marginTop: 5,
-  },
-
-  views: {
-    marginTop: 5,
-    color: "#777",
-  },
-
   description: {
-    marginTop: 15,
-    lineHeight: 22,
+    fontSize: 16,
+    lineHeight: 24,
+    color: "#444",
+  },
+
+  // Bottom bar
+  bottomBar: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    backgroundColor: "#fff",
+    padding: 12,
+    paddingBottom: 24, // cho notch
+    borderTopWidth: 1,
+    borderTopColor: "#eee",
+    elevation: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+  },
+  contactButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#E3F2FD",
+    borderRadius: 12,
+    paddingVertical: 14,
+    marginRight: 8,
+  },
+  contactText: {
+    color: "#007AFF",
+    fontWeight: "600",
+    marginLeft: 8,
+    fontSize: 16,
+  },
+  buyButton: {
+    flex: 2,
+    backgroundColor: "#FF5252",
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 14,
+  },
+  buyText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 16,
   },
 });
