@@ -3,9 +3,8 @@ const Message = require("../models/Message");
 
 function chatSocket(io, socket) {
   const userId = socket.user;
-  console.log("User connected:", userId);
+  // console.log("User connected:", userId);
 
-  // ─── Personal user room ────────────────────────────────────────────────────
   // Join immediately on connect so unread pushes reach this user
   // even when they're on the inbox screen (not inside any conversation)
   socket.join(`user:${userId}`);
@@ -102,9 +101,9 @@ function chatSocket(io, socket) {
     }
   });
 
-  // ─── Join Conversation Room ────────────────────────────────────────────────
+  // ─── Join Conversation Room
   socket.on("joinConversation", async (convId) => {
-    console.log("User joined conversation:", convId, "| userId:", userId);
+    // console.log("User joined conversation:", convId, "| userId:", userId);
     socket.join(convId.toString());
 
     try {
@@ -132,24 +131,18 @@ function chatSocket(io, socket) {
     }
   });
 
-  // ─── Leave Conversation Room ───────────────────────────────────────────────
+  // ─── Leave Conversation Room
   socket.on("leaveConversation", (convId) => {
-    console.log("User left conversation:", convId);
+    // console.log("User left conversation:", convId);
     socket.leave(convId.toString());
   });
 
-  // ─── Disconnect ───────────────────────────────────────────────────────────
+  // ─── Disconnect
   socket.on("disconnect", () => {
-    console.log("User disconnected:", userId);
+    // console.log("User disconnected:", userId);
   });
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-/**
- * Mark all messages in a conversation as read by a specific user.
- * Only marks messages NOT sent by that user that they haven't read yet.
- */
 async function _markConversationAsRead(convId, userId) {
   await Message.updateMany(
     {
@@ -161,10 +154,6 @@ async function _markConversationAsRead(convId, userId) {
   );
 }
 
-/**
- * Count unread messages in a single conversation for a specific user.
- * Used to push accurate badge counts to the inbox after a new message arrives.
- */
 async function _countUnreadForConversation(convId, userId) {
   return Message.countDocuments({
     conversation: convId,
@@ -173,10 +162,6 @@ async function _countUnreadForConversation(convId, userId) {
   });
 }
 
-/**
- * Count total unread messages across ALL conversations for a user.
- * Useful for a global app badge count.
- */
 async function _countTotalUnreadForUser(userId) {
   const conversations = await Conversation.find({
     participants: userId,
