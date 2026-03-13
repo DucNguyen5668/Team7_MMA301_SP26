@@ -1,22 +1,63 @@
-import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import React, { useState } from "react";
+import { View, StyleSheet } from "react-native";
+import InboxScreen from "../components/Chat/InboxScreen";
+import ChatRoomScreen from "../components/Chat/ChatRoomScreen";
+import ProfileScreen from "../components/Rating/RatingProfileScreen";
+import { Conversation } from "../types/message";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ChatScreen() {
+  const [currentScreen, setCurrentScreen] = useState<
+    "inbox" | "chat" | "profile"
+  >("inbox");
+  const [selectedConversation, setSelectedConversation] =
+    useState<Conversation | null>(null);
+  const openChat = (conversation: Conversation) => {
+    setSelectedConversation(conversation);
+    setCurrentScreen("chat");
+  };
+
+  const backToInbox = () => {
+    setCurrentScreen("inbox");
+    setSelectedConversation(null);
+  };
+
+  const openProfile = () => {
+    setCurrentScreen("profile");
+  };
+
+  const backToChat = () => {
+    setCurrentScreen("chat");
+  };
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Tin nhắn</Text>
-      <Text style={styles.subtitle}>Bạn chưa có cuộc trò chuyện nào</Text>
-    </View>
+    <SafeAreaView style={styles.container}>
+      {currentScreen === "inbox" && <InboxScreen onOpenChat={openChat} />}
+
+      {currentScreen === "chat" && selectedConversation && (
+        <ChatRoomScreen
+          conversation={selectedConversation}
+          onBack={backToInbox}
+          onViewProfile={openProfile}
+        />
+      )}
+
+      {currentScreen === "profile" && selectedConversation && (
+        <ProfileScreen
+          opponentId={selectedConversation.opponentId}
+          opponentName={selectedConversation.opponentName}
+          opponentAvatar={selectedConversation.opponentAvatar}
+          conversationId={selectedConversation.id.toString()}
+          onBack={backToChat}
+        />
+      )}
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
     backgroundColor: "#fff",
   },
-  title: { fontSize: 20, fontWeight: "bold" },
-  subtitle: { marginTop: 8, color: "#777" },
 });
