@@ -10,9 +10,10 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { API } from "../../services/api";
+import messageService from "../../services/messageService";
 
 interface VideoModalProps {
-  messageId: string | null; 
+  messageId: string | null;
   visible: boolean;
   onClose: () => void;
 }
@@ -26,27 +27,30 @@ export default function VideoModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const handleFetchVideo = async (messageId: string, cancelled: boolean) => {
+    try {
+      setLoading(true);
+      setError(null);
+      setVideoData(null);
+
+      const data = await messageService.getVideo(messageId);
+
+      if (!cancelled) setVideoData(data.data);
+    } catch (error) {
+      console.error("Error loading video:", error);
+      if (!cancelled) setError("Không thể tải video");
+    } finally {
+      if (!cancelled) setLoading(false);
+    }
+  };
+
   // Fetch video data khi modal mở
   useEffect(() => {
     if (!visible || !messageId) return;
 
     let cancelled = false;
 
-    (async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        setVideoData(null);
-
-        const { data } = await API.get(`/messages/${messageId}/video`);
-
-        if (!cancelled) setVideoData(data.data);
-      } catch {
-        if (!cancelled) setError("Không thể tải video");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
+    handleFetchVideo(messageId, cancelled);
 
     return () => {
       cancelled = true;

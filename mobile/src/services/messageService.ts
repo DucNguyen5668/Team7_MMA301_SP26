@@ -1,52 +1,19 @@
-import { MessageBackend } from "../hooks/useChatMessages";
+import { MessageBackend } from "../types/message";
 import { API } from "./api";
 
-/**
- * Message API Service
- * Handles all message-related API calls
- */
 export const messageService = {
-  /**
-   * Get messages for a conversation with pagination
-   * @param conversationId - The conversation ID
-   * @param page - Page number (default: 1)
-   * @param limit - Number of messages per page (default: 20)
-   * @returns Paginated messages
-   */
   getMessages: async (
     conversationId: string,
     page: number = 1,
     limit: number = 20,
-  ): Promise<{
-    messages: MessageBackend[];
-    page: number;
-    limit: number;
-    totalPages: number;
-  }> => {
-    try {
-      const response = await API.get(
-        `/conversations/${conversationId}/messages`,
-        {
-          params: { page, limit },
-        },
-      );
-      return response.data;
-    } catch (error) {
-      console.error(
-        `Error fetching messages for conversation ${conversationId}:`,
-        error,
-      );
-      throw error;
-    }
+    before?: string,
+  ) => {
+    const { data } = await API.get(`/messages/${conversationId}/messages`, {
+      params: { limit, page, before },
+    });
+    return data;
   },
 
-  /**
-   * Send a message (via REST API - alternative to Socket.IO)
-   * @param conversationId - The conversation ID
-   * @param content - Message content
-   * @param type - Message type
-   * @returns Created message
-   */
   sendMessage: async (
     conversationId: string,
     content: string,
@@ -67,11 +34,6 @@ export const messageService = {
     }
   },
 
-  /**
-   * Delete a message (you'll need to implement this endpoint in backend)
-   * @param conversationId - The conversation ID
-   * @param messageId - The message ID
-   */
   deleteMessage: async (
     conversationId: string,
     messageId: string,
@@ -86,15 +48,21 @@ export const messageService = {
     }
   },
 
-  /**
-   * Mark messages as read (you'll need to implement this endpoint in backend)
-   * @param conversationId - The conversation ID
-   */
   markAsRead: async (conversationId: string): Promise<void> => {
     try {
       await API.put(`/conversations/${conversationId}/messages/read`);
     } catch (error) {
       console.error(`Error marking messages as read:`, error);
+      throw error;
+    }
+  },
+
+  getVideo: async (messageId: string) => {
+    try {
+      const { data } = await API.get(`/messages/${messageId}/video`);
+      return data;
+    } catch (error) {
+      console.error(`Error getting video:`, error);
       throw error;
     }
   },

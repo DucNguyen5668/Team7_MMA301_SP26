@@ -21,6 +21,7 @@ export interface MessageBackend {
   readBy: string[];
   createdAt: Date;
   updatedAt: Date;
+  hasMore: boolean;
 }
 
 export interface ConversationBackend {

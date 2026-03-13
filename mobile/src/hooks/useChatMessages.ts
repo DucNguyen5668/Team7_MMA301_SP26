@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { io, Socket } from "socket.io-client";
-import { API } from "../services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { IP_ADDRESS } from "../constants/ip";
 import { Message } from "../types/message";
@@ -8,6 +7,7 @@ import * as FileSystem from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
 
 import { formatMessageTimestamp } from "../utils";
+import messageService from "../services/messageService";
 
 const SOCKET_URL = `http://${IP_ADDRESS}:5000`;
 
@@ -135,11 +135,9 @@ export const useChatMessages = ({
       setError(null);
       setLoading(true);
 
-      const { data } = await API.get(`/messages/${conversationId}/messages`, {
-        params: { limit: 20 },
-      });
+      const data = await messageService.getMessages(conversationId, 1, 20);
 
-      const transformed: Message[] = data.messages.map((m: any) =>
+      const transformed: Message[] = data.messages.map((m: Message) =>
         toMessage(m, currentUserId),
       );
 
@@ -168,9 +166,12 @@ export const useChatMessages = ({
       setLoadingMore(true);
       setError(null);
 
-      const { data } = await API.get(`/messages/${conversationId}/messages`, {
-        params: { before: oldestMessage.id, limit: 20 },
-      });
+      const data = await messageService.getMessages(
+        conversationId,
+        1,
+        20,
+        oldestMessage.id,
+      );
 
       const transformed: Message[] = data.messages.map((m: any) =>
         toMessage(m, currentUserId),
