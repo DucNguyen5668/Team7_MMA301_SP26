@@ -52,6 +52,36 @@ module.exports.manageMyProduct = async (req, res) => {
   res.json(products);
 };
 
+// module.exports.productDetail = async (req, res) => {
+//   try {
+//     const { userId } = req.query;
+
+//     const product = await Product.findById(req.params.id).populate(
+//       "ownerId",
+//       "fullName email",
+//     );
+
+//     console.log("Product ID:", req.params.id);
+//     console.log("Query userId:", req.query.userId);
+//     console.log("Owner ID:", product.ownerId.toString());
+//     console.log(
+//       "Is owner?",
+//       product.ownerId.toString() === req.query.userId?.toString(),
+//     );
+
+//     // kiểm tra nếu userId tồn tại và KHÔNG phải owner
+//     if (userId && product.ownerId.toString() !== userId.toString()) {
+//       product.views += 1;
+//       await product.save();
+//     }
+
+//     // res.json(product);
+//     res.send("ok");
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   }
+// };
+
 module.exports.productDetail = async (req, res) => {
   try {
     const { userId } = req.query;
@@ -61,18 +91,36 @@ module.exports.productDetail = async (req, res) => {
       "fullName email",
     );
 
-    // kiểm tra nếu userId tồn tại và KHÔNG phải owner
-    if (userId && product.ownerId.toString() !== userId.toString()) {
+    if (!product) {
+      return res.status(404).json({ message: "Sản phẩm không tồn tại" });
+    }
+
+    console.log("Product ID:", req.params.id);
+    console.log("Query userId:", req.query.userId);
+
+    // Lấy ownerId dưới dạng string hex đúng cách
+    const ownerIdStr = product.ownerId._id.toString(); // ← lấy _id từ object populated
+    console.log("Owner ID string:", ownerIdStr);
+
+    // So sánh an toàn
+    const isOwner = userId && ownerIdStr === userId.toString().trim();
+
+    console.log("Is owner?", isOwner);
+
+    if (!isOwner) {
       product.views += 1;
       await product.save();
+      console.log("View increased to:", product.views);
+    } else {
+      console.log("View NOT increased (owner or no userId)");
     }
 
     res.json(product);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: error.message });
   }
 };
-
 module.exports.getProductByOwner = async (req, res) => {
   try {
     const products = await Product.find({

@@ -28,14 +28,12 @@ export default function ManageScreen() {
   );
 
   useEffect(() => {
-    console.log("USER:", user);
     fetchMyProducts();
   }, []);
 
   const fetchMyProducts = async () => {
     try {
       const res = await API.get(`/products/owner/${user.id}`);
-      console.log("PRODUCTS:", res.data);
       setProducts(res.data);
     } catch (error) {
       console.log(error);

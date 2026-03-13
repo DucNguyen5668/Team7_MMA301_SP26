@@ -27,7 +27,11 @@ export default function ProductDetailScreen({ route }: any) {
 
   const fetchProduct = async () => {
     try {
-      const res = await API.get(`/products/${productId}?userId=${user?.id}`);
+      let url = `/products/${productId}`;
+      if (user?.id) {
+        url += `?userId=${user.id}`; // chỉ append nếu user tồn tại và có id thật
+      }
+      const res = await API.get(url);
       setProduct(res.data);
     } catch (error) {
       console.log("Lỗi tải chi tiết sản phẩm:", error);
