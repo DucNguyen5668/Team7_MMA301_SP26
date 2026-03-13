@@ -7,6 +7,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
@@ -36,8 +37,10 @@ export default function ChatRoomScreen({
   const [messageInput, setMessageInput] = useState("");
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+
   const [showVideo, setShowVideo] = useState(false);
-  const [videoData, setVideoData] = useState<string | null>(null);
+  const [videoMessageId, setVideoMessageId] = useState<string | null>(null);
+
   const [pendingImage, setPendingImage] =
     useState<ImagePicker.ImagePickerAsset | null>(null);
 
@@ -45,6 +48,8 @@ export default function ChatRoomScreen({
   const [pendingVideo, setPendingVideo] = useState<
     (ImagePicker.ImagePickerAsset & { thumbnail?: string }) | null
   >(null);
+
+  console.log("pendingVideo", pendingVideo);
 
   const {
     messages,
@@ -86,13 +91,18 @@ export default function ChatRoomScreen({
       mediaTypes: "videos",
       allowsMultipleSelection: false,
       videoMaxDuration: 60,
-      quality: ImagePicker.UIImagePickerControllerQualityType.Medium,
+      // quality: ImagePicker.UIImagePickerControllerQualityType.Medium,
     });
 
     if (!result.canceled && result.assets.length > 0) {
       const asset = result.assets[0];
+      if (asset.duration! > 60000) {
+        Alert.alert("Video phải ngắn hơn 60 giây!");
+        return;
+      }
       // Generate thumbnail từ local URI trước khi encode base64
       const thumbnail = await generateVideoThumbnail(asset.uri);
+      console.log("thumbnail", thumbnail);
       setPendingVideo({ ...asset, thumbnail: thumbnail ?? undefined });
     }
   };
@@ -159,9 +169,9 @@ export default function ChatRoomScreen({
           <MessageBubble
             item={item}
             onImagePress={setImagePreview}
-            onVideoPress={(data) => {
+            onVideoPress={(messageId) => {
               setShowVideo(true);
-              setVideoData(data);
+              setVideoMessageId(messageId);
             }}
             onDelete={deleteMessage}
             isFirstMessage={item.id === messages[0].id}
@@ -216,9 +226,12 @@ export default function ChatRoomScreen({
       />
 
       <VideoModal
-        data={videoData}
+        messageId={videoMessageId}
         visible={showVideo}
-        onClose={() => setShowVideo(false)}
+        onClose={() => {
+          setShowVideo(false);
+          setVideoMessageId(null);
+        }}
       />
     </KeyboardAvoidingView>
   );

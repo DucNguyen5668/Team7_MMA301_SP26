@@ -13,7 +13,7 @@ import { Message } from "../../types/message";
 interface MessageBubbleProps {
   item: Message;
   onImagePress: (uri: string) => void;
-  onVideoPress: (uri: string) => void;
+  onVideoPress: (messageId: string) => void;
   isFirstMessage: boolean;
   onDelete?: (messageId: string) => void; // thêm prop này
 }
@@ -70,7 +70,7 @@ export default function MessageBubble({
         {item.attachment?.type === "video" && (
           <TouchableOpacity
             style={styles.videoContainer}
-            onPress={() => onVideoPress(item.attachment!.data)}
+            onPress={() => onVideoPress(item.id)}
             activeOpacity={0.9}
           >
             {item.attachment.thumbnail ? (

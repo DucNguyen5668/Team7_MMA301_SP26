@@ -33,13 +33,14 @@ export default function ChatInputBar({
   pendingVideo = null,
   onRemovePendingVideo,
 }: ChatInputBarProps) {
-  const canSend = (value.trim().length > 0 || !!pendingImage) && !sending;
+  const canSend =
+    (value.trim().length > 0 || !!pendingImage || !!pendingVideo) && !sending;
 
   return (
     <View style={styles.inputContainer}>
       {/* ── Input row ── */}
       <View style={styles.inputBar}>
-        {!pendingImage && (
+        {!pendingImage && !pendingVideo && (
           <TouchableOpacity style={styles.inputIconButton} onPress={onAttach}>
             <Ionicons name="add-circle-outline" size={24} color="#666" />
           </TouchableOpacity>
@@ -54,6 +55,26 @@ export default function ChatInputBar({
             <TouchableOpacity
               style={styles.removeSmall}
               onPress={onRemovePendingImage}
+            >
+              <Ionicons name="close" size={16} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {pendingVideo && (
+          <View style={styles.smallPreview}>
+            <View style={styles.smallPreviewImageContainer}>
+              <Image
+                source={{ uri: pendingVideo.thumbnail }}
+                style={styles.smallPreviewImage}
+              />
+              <View style={styles.smallPreviewPlayButton}>
+                <Ionicons name="play-circle" size={24} color="#fff" />
+              </View>
+            </View>
+            <TouchableOpacity
+              style={styles.removeSmall}
+              onPress={onRemovePendingVideo}
             >
               <Ionicons name="close" size={16} color="#fff" />
             </TouchableOpacity>
@@ -100,6 +121,27 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
     borderRadius: 8,
+  },
+  smallPreviewImageContainer: {
+    position: "relative",
+    width: 40, 
+    height: 40, 
+  },
+  smallPreviewPlayButton: {
+    position: "absolute",
+    top: 0, 
+    left: 0, 
+    right: 0, 
+    bottom: 0, 
+    justifyContent: "center", 
+    alignItems: "center", 
+    backgroundColor: "rgba(0,0,0,0.4)",
+    borderRadius: 8,
+  },
+  videoFallback: {
+    backgroundColor: "#1a1a1a",
+    justifyContent: "center",
+    alignItems: "center",
   },
   removeSmall: {
     position: "absolute",

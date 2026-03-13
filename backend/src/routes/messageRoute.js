@@ -7,4 +7,6 @@ router.use(authenticate);
 
 router.get("/:convId/messages", messageController.getMessages);
 
+router.get("/:messageId/video", messageController.getVideoData);
+
 module.exports = router;
