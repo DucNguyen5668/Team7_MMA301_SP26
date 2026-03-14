@@ -92,19 +92,15 @@ async function registerAndSaveToken() {
     console.log("Expo Push Token:", token);
 
     // Gửi token lên server
-    await API.post("/users/push-token", { token });
+    await API.post("/notifications/push-token", { token });
   } catch (err) {
     console.error("Lỗi lấy/lưu push token:", err);
   }
 }
 
-/**
- * Xóa push token khỏi server khi logout.
- * Gọi hàm này trong logout handler.
- */
 export async function unregisterPushToken() {
   try {
-    await API.delete("/users/push-token");
+    await API.delete("/notifications/push-token");
   } catch (err) {
     console.error("Lỗi xóa push token:", err);
   }

@@ -14,6 +14,7 @@ const messageRoutes = require("./routes/messageRoute");
 const ratingRoutes = require("./routes/ratingRoute");
 const categoriesRoutes = require("./routes/categoryRoute");
 const productRoutes = require("./routes/productRoutes");
+const notificationRoutes = require("./routes/notificationRoute");
 
 const app = express();
 const server = http.createServer(app);
@@ -29,5 +30,6 @@ app.use("/api/messages", messageRoutes);
 app.use("/api/ratings", ratingRoutes);
 app.use("/api/categories", categoriesRoutes);
 app.use("/api/products", productRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 module.exports = { app, server };
