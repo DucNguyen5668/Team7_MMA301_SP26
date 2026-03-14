@@ -164,7 +164,7 @@ export default function InboxScreen({
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Tin nhắn</Text>
           <TouchableOpacity style={styles.composeButton} onPress={onCompose}>
-            <Ionicons name="chatbubble-ellipses" size={20} color="#222" />
+            <Ionicons name="search" size={20} color="#222" />
           </TouchableOpacity>
         </View>
 

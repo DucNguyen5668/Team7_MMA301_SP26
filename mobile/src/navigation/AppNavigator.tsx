@@ -5,38 +5,25 @@ import { AuthContext } from "../context/authContext";
 import LoginScreen from "../screens/auth/LoginScreen";
 import BottomTabs from "./BottomTabNavigator";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { usePushNotification } from "../hooks/usePushNotification";
+import NotificationNavigation from "../context/NotificationNavigation";
 
 const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
   const { user } = useContext(AuthContext);
-  const navigation: any = useNavigation();
-
-  usePushNotification({
-    onNotificationTapped: (data) => {
-      // data = { conversationId: "...", type: "new_message" }
-      if (data?.conversationId) {
-        // Navigate đến conversation tương ứng
-        // Tuỳ navigation setup của bạn:
-
-        navigation.navigate("Chat", {
-          conversationId: data.conversationId,
-        });
-      }
-    },
-  });
+  {/* <NotificationNavigation> */}
+      {/* </NotificationNavigation> */}
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <NavigationContainer>
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
-          {user ? (
-            <Stack.Screen name="Main" component={BottomTabs} />
-          ) : (
-            <Stack.Screen name="Login" component={LoginScreen} />
-          )}
-        </Stack.Navigator>
+          <Stack.Navigator screenOptions={{ headerShown: false }}>
+            {user ? (
+              <Stack.Screen name="Main" component={BottomTabs} />
+            ) : (
+              <Stack.Screen name="Login" component={LoginScreen} />
+            )}
+          </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaView>
   );

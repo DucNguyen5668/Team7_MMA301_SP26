@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const authenticate = require("../middlewares/auth");
+const authenticate = require("../middleware/authMiddleware");
 const User = require("../models/User");
 
 router.post("/push-token", authenticate, async (req, res) => {
@@ -32,3 +32,5 @@ router.delete("/push-token", authenticate, async (req, res) => {
     res.status(500).json({ message: "Lỗi xóa push token" });
   }
 });
+
+module.exports = router;
