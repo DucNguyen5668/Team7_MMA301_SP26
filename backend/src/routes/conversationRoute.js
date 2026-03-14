@@ -10,5 +10,6 @@ router.get("/search", conversationController.searchUsers);
 router.get("/:id", conversationController.getConversationById);
 router.post("/", conversationController.createOrGetPrivateConversation);
 router.put("/:convId/read", conversationController.markAsRead);
+router.get("/check/:userId", conversationController.findExistingConversation);
 
 module.exports = router;

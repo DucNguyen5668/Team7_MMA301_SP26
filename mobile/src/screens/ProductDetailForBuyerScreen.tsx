@@ -61,21 +61,43 @@ export default function ProductDetailForBuyerScreen({ route }: any) {
     const res = await API.get(`/products/${productId}`);
     setProduct(res.data);
   };
+  const [chatLoading, setChatLoading] = useState(false);
 
-  const handleChatWithSeller = () => {
+  const handleChatWithSeller = async () => {
     if (!product?.ownerId) return;
+    setChatLoading(true);
 
-    const sellerAsUser = {
+    const seller = {
       _id: product.ownerId._id,
       fullName: product.ownerId.fullName,
       avatar: product.ownerId.avatar ?? null,
     };
 
-    // Jump sang tab Chat, truyền tempUser
-    navigation.navigate("Chat", {
-      tempUser: sellerAsUser,
-      _t: Date.now(), // ✅ force re-trigger
-    });
+    try {
+      const { data } = await API.get(`/conversations/check/${seller._id}`);
+
+      if (data.exists) {
+        // Đã có conv → mở với conversationId để fetch messages cũ
+        const conv = {
+          id: data.conversation._id,
+          opponentId: seller._id,
+          opponentName: seller.fullName,
+          opponentAvatar: seller.avatar,
+          lastMessage: "",
+          lastMessageTime: new Date(data.conversation.updatedAt ?? Date.now()),
+          timestamp: "",
+          unread: 0,
+        };
+        navigation.navigate("Chat", { conversation: conv, _t: Date.now() });
+      } else {
+        // Chưa có conv → tempUser, không tạo gì cả
+        navigation.navigate("Chat", { tempUser: seller, _t: Date.now() });
+      }
+    } catch (err) {
+      console.error("Lỗi check conversation:", err);
+    } finally {
+      setChatLoading(false);
+    }
   };
 
   if (!product) return null;
@@ -130,7 +152,7 @@ export default function ProductDetailForBuyerScreen({ route }: any) {
 
       {/* BOTTOM BUTTON */}
       <View style={styles.bottomBar}>
-        <TouchableOpacity style={styles.chatBtn} onPress={handleChatWithSeller}>
+        <TouchableOpacity style={styles.chatBtn} disabled={chatLoading} onPress={handleChatWithSeller}>
           <Ionicons name="chatbubble-outline" size={20} color="#fff" />
           <Text style={{ color: "#fff" }}>Chat với người bán</Text>
         </TouchableOpacity>

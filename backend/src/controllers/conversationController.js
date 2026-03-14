@@ -25,7 +25,7 @@ exports.getConversations = async (req, res) => {
           (p) => p._id.toString() !== userId.toString(),
         );
 
-        switch (conv.lastMessage.type) {
+        switch (conv.lastMessage?.type) {
           case "image":
             conv.lastMessage.content = "Đã gửi 1 ảnh";
             break;
@@ -177,5 +177,26 @@ exports.searchUsers = async (req, res) => {
   } catch (err) {
     console.error("Search users error:", err);
     res.status(500).json({ message: "Lỗi tìm kiếm người dùng" });
+  }
+};
+
+exports.findExistingConversation = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const currentUserId = req.user;
+
+    const participantIds = [currentUserId.toString(), userId].sort();
+
+    const conversation = await Conversation.findOne({
+      participants: { $all: participantIds, $size: 2 },
+    }).lean();
+
+    if (!conversation) {
+      return res.json({ exists: false, conversation: null });
+    }
+
+    res.json({ exists: true, conversation });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };

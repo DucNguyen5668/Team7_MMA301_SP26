@@ -25,10 +25,18 @@ export default function ChatScreen() {
 
   // Nhận tempUser khi navigate từ ProductDetail
   useEffect(() => {
-    const incomingUser = route.params?.tempUser;
-    if (incomingUser) {
-      setTempUser(incomingUser);
+    const incomingConv = route.params?.conversation;
+    const incomingTempUser = route.params?.tempUser;
+
+    if (incomingConv) {
+      // Đã có conv → fetch messages cũ
+      setTempUser(null);
+      setSelectedConversation(incomingConv);
+      setCurrentScreen("chat");
+    } else if (incomingTempUser) {
+      // Chưa có conv → temp mode
       setSelectedConversation(null);
+      setTempUser(incomingTempUser);
       setCurrentScreen("chat");
     }
   }, [route.params?._t]);
@@ -78,6 +86,7 @@ export default function ChatScreen() {
 
       {currentScreen === "chat" && (selectedConversation || tempUser) && (
         <ChatRoomScreen
+          key={route.params?._t || tempUser?._id || "temp-chat"} // ← thêm key quan trọng
           conversation={selectedConversation}
           tempUser={tempUser}
           onConversationCreated={onConversationCreated}
