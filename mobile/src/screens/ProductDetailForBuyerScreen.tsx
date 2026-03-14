@@ -10,9 +10,11 @@ import {
 
 import { Ionicons } from "@expo/vector-icons";
 import { API } from "../services/api";
+import { useNavigation } from "@react-navigation/native";
 
 export default function ProductDetailForBuyerScreen({ route }: any) {
   const { productId } = route.params;
+  const navigation = useNavigation<any>();
 
   const [product, setProduct] = useState<any>(null);
 
@@ -58,6 +60,22 @@ export default function ProductDetailForBuyerScreen({ route }: any) {
   const fetchProduct = async () => {
     const res = await API.get(`/products/${productId}`);
     setProduct(res.data);
+  };
+
+  const handleChatWithSeller = () => {
+    if (!product?.ownerId) return;
+
+    const sellerAsUser = {
+      _id: product.ownerId._id,
+      fullName: product.ownerId.fullName,
+      avatar: product.ownerId.avatar ?? null,
+    };
+
+    // Jump sang tab Chat, truyền tempUser
+    navigation.navigate("Chat", {
+      tempUser: sellerAsUser,
+      _t: Date.now(), // ✅ force re-trigger
+    });
   };
 
   if (!product) return null;
@@ -112,7 +130,7 @@ export default function ProductDetailForBuyerScreen({ route }: any) {
 
       {/* BOTTOM BUTTON */}
       <View style={styles.bottomBar}>
-        <TouchableOpacity style={styles.chatBtn}>
+        <TouchableOpacity style={styles.chatBtn} onPress={handleChatWithSeller}>
           <Ionicons name="chatbubble-outline" size={20} color="#fff" />
           <Text style={{ color: "#fff" }}>Chat với người bán</Text>
         </TouchableOpacity>

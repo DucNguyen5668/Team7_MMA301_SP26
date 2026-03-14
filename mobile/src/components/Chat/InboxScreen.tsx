@@ -89,24 +89,41 @@ export default function InboxScreen({
       });
       socketRef.current = socket;
 
-      socket.on("unreadUpdate", ({ conversationId, unreadCount }: any) => {
-        setConversations((prev) =>
-          prev.map((c) =>
-            c.id.toString() === conversationId.toString()
-              ? { ...c, unread: unreadCount }
-              : c,
-          ),
-        );
-      });
+      socket.on("conversationUpdated", (data: any) => {
+        setConversations((prev) => {
+          const index = prev.findIndex(
+            (c) => c.id.toString() === data.conversationId.toString(),
+          );
 
-      socket.on("markedAsRead", ({ conversationId }: any) => {
-        setConversations((prev) =>
-          prev.map((c) =>
-            c.id.toString() === conversationId.toString()
-              ? { ...c, unread: 0 }
-              : c,
-          ),
-        );
+          const updatedConv: Conversation = {
+            id: data.conversationId,
+            opponentId: data.opponent._id,
+            opponentName: data.opponent.fullName,
+            opponentAvatar:
+              data.opponent.avatar ||
+              `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 70)}`,
+
+            lastMessage: data.lastMessage.content || "",
+            lastMessageTime: new Date(data.lastMessage.createdAt),
+            timestamp: formatChatTimestamp(data.lastMessage.createdAt),
+            unread: data.unreadCount,
+          };
+
+          if (index === -1) {
+            return [updatedConv, ...prev];
+          }
+
+          const updated = [...prev];
+          updated[index] = updatedConv;
+
+          updated.sort(
+            (a, b) =>
+              new Date(b.lastMessageTime).getTime() -
+              new Date(a.lastMessageTime).getTime(),
+          );
+
+          return updated;
+        });
       });
     })();
 

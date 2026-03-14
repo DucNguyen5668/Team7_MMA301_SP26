@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { StyleSheet } from "react-native";
 import InboxScreen from "../components/Chat/InboxScreen";
 import ChatRoomScreen from "../components/Chat/ChatRoomScreen";
@@ -8,10 +8,13 @@ import SearchUserModal, {
 } from "../components/Chat/SearchUserModal";
 import { Conversation } from "../types/message";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRoute } from "@react-navigation/native";
 
 type TCurrentScreen = "inbox" | "chat" | "profile";
 
 export default function ChatScreen() {
+  const route = useRoute<any>();
+
   const [currentScreen, setCurrentScreen] = useState<TCurrentScreen>("inbox");
   const [selectedConversation, setSelectedConversation] =
     useState<Conversation | null>(null);
@@ -19,6 +22,16 @@ export default function ChatScreen() {
   // User được chọn từ search nhưng chưa có conversation
   const [tempUser, setTempUser] = useState<UserResult | null>(null);
   const [showSearchModal, setShowSearchModal] = useState(false);
+
+  // Nhận tempUser khi navigate từ ProductDetail
+  useEffect(() => {
+    const incomingUser = route.params?.tempUser;
+    if (incomingUser) {
+      setTempUser(incomingUser);
+      setSelectedConversation(null);
+      setCurrentScreen("chat");
+    }
+  }, [route.params?._t]);
 
   // Mở chat với conversation đã tồn tại (từ InboxScreen)
   const openChat = (conversation: Conversation) => {
