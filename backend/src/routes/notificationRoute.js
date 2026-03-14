@@ -6,6 +6,8 @@ const User = require("../models/User");
 router.post("/push-token", authenticate, async (req, res) => {
   try {
     const { token } = req.body;
+    console.log("Token:", token);
+    console.log("User:", req.user);
 
     if (!token || typeof token !== "string") {
       return res.status(400).json({ message: "Token không hợp lệ" });
@@ -16,6 +18,7 @@ router.post("/push-token", authenticate, async (req, res) => {
       return res.status(400).json({ message: "Không phải Expo Push Token" });
     }
 
+    console.log("Saving push token:", token);
     await User.findByIdAndUpdate(req.user, { pushToken: token });
     res.json({ success: true });
   } catch (err) {

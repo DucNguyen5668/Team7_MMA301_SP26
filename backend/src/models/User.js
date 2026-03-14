@@ -18,6 +18,7 @@ const userSchema = new mongoose.Schema(
     avatar: String,
     role: String,
     isVerified: Boolean,
+    pushToken: String,
   },
   { timestamps: true },
 );

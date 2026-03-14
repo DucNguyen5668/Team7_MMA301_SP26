@@ -21,7 +21,7 @@ async function sendPushNotifications(notifications) {
   }));
 
   try {
-    await fetch(EXPO_PUSH_URL, {
+    const res = await fetch(EXPO_PUSH_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -29,6 +29,7 @@ async function sendPushNotifications(notifications) {
       },
       body: JSON.stringify(messages),
     });
+    console.log("Push response:", res);
   } catch (err) {
     console.error("Batch push error:", err?.message);
   }
@@ -118,20 +119,27 @@ function chatSocket(io, socket) {
         .in(conversationId.toString())
         .fetchSockets();
 
+      console.log("Sockets in room:", socketsInRoom);
+
       const userIdsInRoom = new Set(
         socketsInRoom.map((s) => s.data?.userId).filter(Boolean),
       );
+
+      console.log("User IDs in room:", userIdsInRoom);
 
       const pushPayloads = [];
 
       for (const participant of otherUsers) {
         const participantId = participant._id.toString();
+        console.log("Participant ID:", participantId);
         const isInRoom = userIdsInRoom.has(participantId);
+        console.log("Is in room:", isInRoom);
 
         const unreadCount = await _countUnreadForConversation(
           conversationId,
           participantId,
         );
+        console.log("Unread count:", unreadCount);
 
         io.to(`user:${participantId}`).emit("conversationUpdated", {
           conversationId,
@@ -152,6 +160,8 @@ function chatSocket(io, socket) {
           unreadCount,
         });
 
+        console.log("Pushing to participant:", participantId);
+        console.log("Push token:", participant.pushToken);
         if (!isInRoom && participant.pushToken) {
           pushPayloads.push({
             pushToken: participant.pushToken,
@@ -164,6 +174,8 @@ function chatSocket(io, socket) {
           });
         }
       }
+
+      console.log("Push payloads:", pushPayloads);
       // 🚀 send push
       if (pushPayloads.length > 0) {
         sendPushNotifications(pushPayloads).catch(() => {});
@@ -233,10 +245,6 @@ function chatSocket(io, socket) {
     socket.leave(convId.toString());
   });
 
-  // ─── Disconnect
-  socket.on("disconnect", () => {
-    // console.log("User disconnected:", userId);
-  });
 }
 
 async function _markConversationAsRead(convId, userId) {
