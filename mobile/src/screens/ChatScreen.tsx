@@ -8,12 +8,13 @@ import SearchUserModal, {
 } from "../components/Chat/SearchUserModal";
 import { Conversation } from "../types/message";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRoute } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 
 type TCurrentScreen = "inbox" | "chat" | "profile";
 
 export default function ChatScreen() {
   const route = useRoute<any>();
+  const navigation = useNavigation<any>();
 
   const [currentScreen, setCurrentScreen] = useState<TCurrentScreen>("inbox");
   const [selectedConversation, setSelectedConversation] =
@@ -62,6 +63,10 @@ export default function ChatScreen() {
   };
 
   const backToInbox = () => {
+    if (route.params?._t) {
+      navigation.setParams({ _t: undefined });
+      navigation.goBack();
+    }
     setCurrentScreen("inbox");
     setSelectedConversation(null);
     setTempUser(null);
