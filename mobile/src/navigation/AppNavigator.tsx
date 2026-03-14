@@ -11,8 +11,6 @@ const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
   const { user } = useContext(AuthContext);
-  {/* <NotificationNavigation> */}
-      {/* </NotificationNavigation> */}
 
   return (
     <SafeAreaView style={{ flex: 1 }}>

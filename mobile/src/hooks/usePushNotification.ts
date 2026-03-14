@@ -56,11 +56,7 @@ export function usePushNotification({
 }
 
 async function registerAndSaveToken() {
-  // Push notification chỉ hoạt động trên thiết bị thật
-  if (!Device.isDevice) {
-    console.warn("Push notifications chỉ hoạt động trên thiết bị thật.");
-    return;
-  }
+  console.log("Registering push token...");
 
   // Xin quyền notification
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
@@ -87,12 +83,15 @@ async function registerAndSaveToken() {
   }
 
   try {
-    const tokenData = await Notifications.getExpoPushTokenAsync();
+    const tokenData = await Notifications.getExpoPushTokenAsync({
+      projectId: "d55ef5a5-76d1-4cab-8315-76b85a621f17",
+    });
     const token = tokenData.data;
     console.log("Expo Push Token:", token);
 
     // Gửi token lên server
-    await API.post("/notifications/push-token", { token });
+    const res = await API.post("/notifications/push-token", { token });
+    console.log("Push token response:", res);
   } catch (err) {
     console.error("Lỗi lấy/lưu push token:", err);
   }

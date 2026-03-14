@@ -10,6 +10,7 @@ import ProfileScreen from "../screens/ProfileScreen";
 import HomeStack from "./HomeStack";
 import ManageStack from "./ManageStack";
 import ProductDetailScreen from "../screens/ProductDetailScreen";
+import NotificationNavigation from "../context/NotificationNavigation";
 // import { createNativeStackNavigator } from "@react-navigation/native-stack";
 // import { RootStackParamList } from "./types";
 
@@ -18,65 +19,67 @@ const Tab = createBottomTabNavigator();
 
 export default function BottomTabs() {
   return (
-    <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-      }}
-    >
-      <Tab.Screen
-        name="Home"
-        component={HomeStack}
-        options={{
-          tabBarLabel: "Trang chủ",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home" size={size} color={color} />
-          ),
+    <NotificationNavigation>
+      <Tab.Navigator
+        screenOptions={{
+          headerShown: false,
         }}
-      />
+      >
+        <Tab.Screen
+          name="Home"
+          component={HomeStack}
+          options={{
+            tabBarLabel: "Trang chủ",
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="home" size={size} color={color} />
+            ),
+          }}
+        />
 
-      <Tab.Screen
-        name="Manage"
-        component={ManageStack}
-        options={{
-          tabBarLabel: "Quản lý tin",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="pricetag-outline" size={size} color={color} />
-          ),
-        }}
-      />
+        <Tab.Screen
+          name="Manage"
+          component={ManageStack}
+          options={{
+            tabBarLabel: "Quản lý tin",
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="pricetag-outline" size={size} color={color} />
+            ),
+          }}
+        />
 
-      <Tab.Screen
-        name="Post"
-        component={PostScreen}
-        options={{
-          tabBarLabel: "Đăng tin",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="add-circle" size={size} color="#FFC107" />
-          ),
-        }}
-      />
+        <Tab.Screen
+          name="Post"
+          component={PostScreen}
+          options={{
+            tabBarLabel: "Đăng tin",
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="add-circle" size={size} color="#FFC107" />
+            ),
+          }}
+        />
 
-      <Tab.Screen
-        name="Chat"
-        component={ChatScreen}
-        options={{
-          tabBarLabel: "Liên hệ",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="chatbubble-outline" size={size} color={color} />
-          ),
-        }}
-      />
+        <Tab.Screen
+          name="Chat"
+          component={ChatScreen}
+          options={{
+            tabBarLabel: "Liên hệ",
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="chatbubble-outline" size={size} color={color} />
+            ),
+          }}
+        />
 
-      <Tab.Screen
-        name="Profile"
-        component={ProfileScreen}
-        options={{
-          tabBarLabel: "Tài khoản",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person-outline" size={size} color={color} />
-          ),
-        }}
-      />
-    </Tab.Navigator>
+        <Tab.Screen
+          name="Profile"
+          component={ProfileScreen}
+          options={{
+            tabBarLabel: "Tài khoản",
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="person-outline" size={size} color={color} />
+            ),
+          }}
+        />
+      </Tab.Navigator>
+    </NotificationNavigation>
   );
 }

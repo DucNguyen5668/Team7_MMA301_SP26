@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "mobile",
-    "slug": "mobile",
+    "name": "testbuildsell",
+    "slug": "testbuildsell",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -21,12 +21,19 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "NOTIFICATIONS"
+      ],
+      "package": "com.duythaidev.testbuildsell",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      "expo-notifications",
       [
         "expo-image-picker",
         {
@@ -34,6 +41,12 @@
           "cameraPermission": "Allow access to your camera."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "d55ef5a5-76d1-4cab-8315-76b85a621f17"
+      }
+    },
+    "owner": "duythaidev"
   }
 }
