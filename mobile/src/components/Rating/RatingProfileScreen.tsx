@@ -234,7 +234,7 @@ export default function RatingProfileScreen({
           setShowRatingModal(false);
           fetchProfile(1);
         }}
-        user={{ id: opponentId, name: displayName, avatar: displayAvatar }}
+        user={{ _id: opponentId, name: displayName, avatar: displayAvatar }}
         conversationId={conversationId}
       />
     </View>

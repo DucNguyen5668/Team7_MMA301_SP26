@@ -78,9 +78,7 @@ export default function ChatRoomScreen({
     conversation?.opponentAvatar ??
     (tempUser
       ? tempUser.avatar ||
-        `https://i.pravatar.cc/150?img=${
-          parseInt(tempUser._id.slice(-2), 16) % 70
-        }`
+        `https://cdn-icons-png.flaticon.com/128/847/847969.png`
       : "");
 
   const handlePickImage = async () => {
