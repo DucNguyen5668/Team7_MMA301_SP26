@@ -52,35 +52,6 @@ module.exports.manageMyProduct = async (req, res) => {
   res.json(products);
 };
 
-// module.exports.productDetail = async (req, res) => {
-//   try {
-//     const { userId } = req.query;
-
-//     const product = await Product.findById(req.params.id).populate(
-//       "ownerId",
-//       "fullName email",
-//     );
-
-//     console.log("Product ID:", req.params.id);
-//     console.log("Query userId:", req.query.userId);
-//     console.log("Owner ID:", product.ownerId.toString());
-//     console.log(
-//       "Is owner?",
-//       product.ownerId.toString() === req.query.userId?.toString(),
-//     );
-
-//     // kiểm tra nếu userId tồn tại và KHÔNG phải owner
-//     if (userId && product.ownerId.toString() !== userId.toString()) {
-//       product.views += 1;
-//       await product.save();
-//     }
-
-//     // res.json(product);
-//     res.send("ok");
-//   } catch (error) {
-//     res.status(500).json({ message: error.message });
-//   }
-// };
 
 module.exports.productDetail = async (req, res) => {
   try {
@@ -94,22 +65,14 @@ module.exports.productDetail = async (req, res) => {
       return res.status(404).json({ message: "Sản phẩm không tồn tại" });
     }
 
-    console.log("Product ID:", req.params.id);
-    console.log("Query userId:", req.query.userId);
-
-    // Lấy ownerId dưới dạng string hex đúng cách
     const ownerIdStr = product.ownerId._id.toString(); // ← lấy _id từ object populated
-    console.log("Owner ID string:", ownerIdStr);
 
     // So sánh an toàn
     const isOwner = userId && ownerIdStr === userId.toString().trim();
 
-    console.log("Is owner?", isOwner);
-
     if (!isOwner) {
       product.views += 1;
       await product.save();
-      console.log("View increased to:", product.views);
     } else {
       console.log("View NOT increased (owner or no userId)");
     }
@@ -147,5 +110,151 @@ module.exports.delete = async (req, res) => {
     res.json({ message: "Product deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: "Delete failed" });
+  }
+};
+
+// GET /api/products/search?q=...&category=...&sortBy=...&minPrice=...&maxPrice=...
+exports.search = async (req, res) => {
+  try {
+    const { q, category, sortBy, minPrice, maxPrice, page = 1, limit = 20 } = req.query;
+
+    const filter = { status: "active" };
+
+    // Text search
+    if (q && q.trim()) {
+      filter.$or = [
+        { title: { $regex: q.trim(), $options: "i" } },
+        { description: { $regex: q.trim(), $options: "i" } },
+      ];
+    }
+
+    // Category filter
+    if (category && category !== "Tất cả") {
+      filter.category = category;
+    }
+
+    // Price range
+    if (minPrice || maxPrice) {
+      filter.price = {};
+      if (minPrice) filter.price.$gte = Number(minPrice);
+      if (maxPrice) filter.price.$lte = Number(maxPrice);
+    }
+
+    // Sort
+    let sort = { createdAt: -1 }; // default: newest
+    if (sortBy === "price_asc") sort = { price: 1 };
+    else if (sortBy === "price_desc") sort = { price: -1 };
+    else if (sortBy === "newest") sort = { createdAt: -1 };
+
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const [products, total] = await Promise.all([
+      Product.find(filter)
+        .sort(sort)
+        .skip(skip)
+        .limit(Number(limit))
+        .populate("seller", "fullName avatar"),
+      Product.countDocuments(filter),
+    ]);
+
+    res.json({
+      products,
+      total,
+      page: Number(page),
+      totalPages: Math.ceil(total / Number(limit)),
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// GET /api/products/mine
+exports.getMyProducts = async (req, res) => {
+  try {
+    const products = await Product.find({ seller: req.userId })
+      .sort({ createdAt: -1 })
+      .populate("seller", "fullName avatar");
+    res.json(products);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// POST /api/products
+exports.createProduct = async (req, res) => {
+  try {
+    const { title, description, price, category, images, location } = req.body;
+
+    const product = await Product.create({
+      title,
+      description,
+      price,
+      category,
+      images: images || [],
+      location,
+      seller: req.userId,
+    });
+
+    await product.populate("seller", "fullName avatar");
+    res.status(201).json(product);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// GET /api/products/:id
+exports.getProductById = async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id).populate(
+      "seller",
+      "fullName avatar phone email"
+    );
+    if (!product) return res.status(404).json({ message: "Không tìm thấy sản phẩm" });
+    res.json(product);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// PUT /api/products/:id
+exports.updateProduct = async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) return res.status(404).json({ message: "Không tìm thấy sản phẩm" });
+
+    // Chỉ owner mới được sửa
+    if (product.seller.toString() !== req.userId) {
+      return res.status(403).json({ message: "Không có quyền chỉnh sửa sản phẩm này" });
+    }
+
+    const { title, description, price, category, images, location, status, condition } = req.body;
+
+    const updated = await Product.findByIdAndUpdate(
+      req.params.id,
+      { title, description, price, category, images, location, status, condition },
+      { new: true, runValidators: true }
+    ).populate("seller", "fullName avatar");
+
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// DELETE /api/products/:id
+exports.deleteProduct = async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) return res.status(404).json({ message: "Không tìm thấy sản phẩm" });
+
+    // Chỉ owner mới được xoá
+    if (product.seller.toString() !== req.userId) {
+      return res.status(403).json({ message: "Không có quyền xoá sản phẩm này" });
+    }
+
+    await Product.findByIdAndDelete(req.params.id);
+    res.json({ message: "Xoá sản phẩm thành công" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };

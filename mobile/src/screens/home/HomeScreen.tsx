@@ -89,10 +89,14 @@ export default function HomeScreen() {
             <View style={styles.searchRow}>
               <Ionicons name="menu" size={24} color="black" />
 
-              <View style={styles.searchBox}>
-                <Ionicons name="search" size={18} color="#999" />
-                <TextInput placeholder="Tìm sản phẩm..." style={{ flex: 1 }} />
-              </View>
+          <TouchableOpacity
+            style={styles.searchBox}
+            activeOpacity={0.8}
+            onPress={() => navigation.navigate("Search" as never)}
+          >
+            <Ionicons name="search" size={18} color="#999" />
+            <Text style={{ flex: 1, color: "#999", fontSize: 14 }}>Tìm sản phẩm...</Text>
+          </TouchableOpacity>
 
               <Ionicons name="notifications-outline" size={24} color="black" />
             </View>
@@ -230,11 +234,24 @@ const styles = StyleSheet.create({
 
   title: {
     marginTop: 5,
+    fontSize: 13,
   },
 
   price: {
     color: "red",
     fontWeight: "bold",
     marginTop: 5,
+    fontSize: 14,
+  },
+  locationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 6,
+    gap: 2,
+  },
+  locationText: {
+    fontSize: 10,
+    color: "#888",
+    flex: 1,
   },
 });

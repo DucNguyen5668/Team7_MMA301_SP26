@@ -19,7 +19,20 @@ exports.register = async (req, res) => {
       password: hashedPassword,
     });
 
-    res.status(201).json({ message: "User created" });
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
+
+    res.status(201).json({
+      message: "User created",
+      token,
+      user: {
+        id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        avatar: user.avatar,
+      },
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -47,10 +60,25 @@ exports.login = async (req, res) => {
       token,
       user: {
         id: user._id,
-        name: user.name,
+        fullName: user.fullName,
         email: user.email,
+        avatar: user.avatar,
+        phone: user.phone,
+        dob: user.dob,
+        gender: user.gender,
+        bio: user.bio,
       },
     });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.getMe = async (req, res) => {
+  try {
+    const user = await User.findById(req.userId).select("-password");
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.json(user);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

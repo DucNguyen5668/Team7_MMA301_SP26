@@ -7,7 +7,7 @@ import EditProductScreen from "../screens/EditProductScreen";
 
 const Stack = createNativeStackNavigator();
 
-export default function HomeStack() {
+export default function ManageStack() {
   return (
     <Stack.Navigator>
       <Stack.Screen

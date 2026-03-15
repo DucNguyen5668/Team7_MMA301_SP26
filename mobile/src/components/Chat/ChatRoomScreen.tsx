@@ -67,7 +67,7 @@ export default function ChatRoomScreen({
   } = useChatMessages({
     conversationId: conversation?.id?.toString() ?? null,
     targetUserId: tempUser?._id ?? null,
-    currentUserId: user.id,
+    currentUserId: user._id,
     onConversationCreated,
   });
 

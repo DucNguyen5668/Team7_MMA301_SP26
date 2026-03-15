@@ -4,7 +4,7 @@ const Message = require("../models/Message");
 exports.getMessages = async (req, res) => {
   try {
     const { convId } = req.params;
-    const userId = req.user;
+    const userId = req.userId;
     const limit = parseInt(req.query.limit) || 20;
     const before = req.query.before;
 
@@ -58,7 +58,7 @@ exports.getMessages = async (req, res) => {
 exports.getVideoData = async (req, res) => {
   try {
     const { messageId } = req.params;
-    const userId = req.user;
+    const userId = req.userId;
 
     const message = await Message.findById(messageId).lean();
 
