@@ -10,11 +10,12 @@ import {
   SafeAreaView,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { useNavigation } from "@react-navigation/native";
 import { Ionicons, FontAwesome } from "@expo/vector-icons";
 
 export default function LoginScreen() {
   const { login } = useContext(AuthContext);
-
+  const navigation = useNavigation<any>();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -98,7 +99,12 @@ export default function LoginScreen() {
 
           <Text style={styles.signupText}>
             Don't have an account?{" "}
-            <Text style={styles.signupLink}>Sign Up</Text>
+            <Text
+              style={styles.signupLink}
+              onPress={() => navigation.navigate("Register")}
+            >
+              Sign Up
+            </Text>
           </Text>
         </View>
       </SafeAreaView>

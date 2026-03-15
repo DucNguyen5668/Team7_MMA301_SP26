@@ -27,8 +27,25 @@ export const AuthProvider = ({ children }: any) => {
     setLoading(false);
   };
 
+  // LOGIN
   const login = async (email: string, password: string) => {
     const res = await API.post("/auth/login", {
+      email,
+      password,
+    });
+
+    await AsyncStorage.setItem("token", res.data.token);
+    setUser(res.data.user);
+  };
+
+  // REGISTER
+  const register = async (
+    fullName: string,
+    email: string,
+    password: string,
+  ) => {
+    const res = await API.post("/auth/register", {
+      fullName,
       email,
       password,
     });
@@ -43,7 +60,15 @@ export const AuthProvider = ({ children }: any) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        login,
+        register,
+        logout,
+        loading,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
