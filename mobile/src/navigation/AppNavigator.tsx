@@ -5,14 +5,11 @@ import { AuthContext } from "../context/authContext";
 import LoginScreen from "../screens/auth/LoginScreen";
 import BottomTabs from "./BottomTabNavigator";
 import { SafeAreaView } from "react-native-safe-area-context";
-import NotificationNavigation from "../context/NotificationNavigation";
 
 const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
   const { user } = useContext(AuthContext);
-  {/* <NotificationNavigation> */}
-      {/* </NotificationNavigation> */}
 
   return (
     <SafeAreaView style={{ flex: 1 }}>

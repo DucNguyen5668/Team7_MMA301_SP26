@@ -56,7 +56,7 @@ export default function InboxScreen({
             opponentName: conv.opponent?.fullName || "Unknown User",
             opponentAvatar:
               conv.opponent?.avatar ||
-              `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 70)}`,
+              `https://cdn-icons-png.flaticon.com/128/847/847969.png`,
             lastMessage: conv.lastMessage?.content || "",
             lastMessageTime: new Date(
               conv.lastMessage?.createdAt || conv.updatedAt,
@@ -101,7 +101,7 @@ export default function InboxScreen({
             opponentName: data.opponent.fullName,
             opponentAvatar:
               data.opponent.avatar ||
-              `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 70)}`,
+              `https://cdn-icons-png.flaticon.com/128/847/847969.png`,
 
             lastMessage: data.lastMessage.content || "",
             lastMessageTime: new Date(data.lastMessage.createdAt),

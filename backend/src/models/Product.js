@@ -1,70 +1,29 @@
-// models/Product.js
-
 const mongoose = require("mongoose");
 
 const productSchema = new mongoose.Schema(
   {
-    title: {
+    title: { type: String, required: true },
+    description: { type: String, default: "" },
+    price: { type: Number, required: true },
+    category: {
       type: String,
-      required: true,
-      trim: true,
-      maxlength: 100,
+      enum: ["Xe cộ", "Đồ gia dụng", "Việc làm", "Điện tử", "Khác"],
+      default: "Khác",
     },
-
-    description: {
-      type: String,
-      required: true,
-      maxlength: 1500,
-    },
-
-    price: {
-      type: Number,
-      required: true,
-      default: 0,
-    },
-
     condition: {
       type: String,
       enum: ["new", "used"],
       default: "used",
     },
-
-    status: {
-      type: String,
-      enum: ["active", "sold", "hidden"],
-      default: "active",
-    },
-
-    views: {
-      type: Number,
-      default: 0,
-    },
-
-    ownerId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
-
-    categoryId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Category",
-      required: true,
-    },
-
-    image: {
-      type: String,
-      default: "",
-    },
-
-    timestamp: {
-      type: Date,
-      default: Date.now,
-    },
+    images: [{ type: String }],
+    seller: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    location: { type: String, default: "" },
+    status: { type: String, enum: ["active", "sold", "hidden"], default: "active" },
+    views: { type: Number, default: 0 },
   },
-  {
-    timestamps: true,
-  },
+  { timestamps: true }
 );
+
+productSchema.index({ title: "text", description: "text" });
 
 module.exports = mongoose.model("Product", productSchema);

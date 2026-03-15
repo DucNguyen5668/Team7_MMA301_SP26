@@ -103,8 +103,7 @@ export default function SearchUserModal({
 
   const renderUser = ({ item }: { item: UserResult }) => {
     const avatarUrl =
-      item.avatar ||
-      `https://i.pravatar.cc/150?img=${parseInt(item._id.slice(-2), 16) % 70}`;
+      item.avatar || `https://cdn-icons-png.flaticon.com/128/847/847969.png`;
 
     return (
       <TouchableOpacity

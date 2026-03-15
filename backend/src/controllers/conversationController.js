@@ -4,7 +4,7 @@ const User = require("../models/User");
 
 exports.getConversations = async (req, res) => {
   try {
-    const userId = req.user;
+    const userId = req.userId;
     const { filter, search } = req.query;
 
     const conversations = await Conversation.find({ participants: userId })
@@ -70,7 +70,7 @@ exports.getConversations = async (req, res) => {
 exports.getConversationById = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user;
+    const userId = req.userId;
 
     const conv = await Conversation.findOne({
       _id: id,
@@ -95,7 +95,7 @@ exports.getConversationById = async (req, res) => {
 exports.createOrGetPrivateConversation = async (req, res) => {
   try {
     const { userId } = req.body;
-    const currentUserId = req.user;
+    const currentUserId = req.userId;
 
     if (userId === currentUserId.toString()) {
       return res.status(400).json({ message: "Cannot chat with yourself" });
@@ -129,7 +129,7 @@ exports.createOrGetPrivateConversation = async (req, res) => {
 exports.markAsRead = async (req, res) => {
   try {
     const { convId } = req.params;
-    const userId = req.user;
+    const userId = req.userId;
 
     const conversation = await Conversation.findOne({
       _id: convId,
@@ -166,7 +166,7 @@ exports.searchUsers = async (req, res) => {
     const regex = new RegExp(q.trim(), "i");
 
     const users = await User.find({
-      _id: { $ne: req.user },
+      _id: { $ne: userId },
       $or: [{ fullName: regex }, { email: regex }],
     })
       .select("_id fullName email avatar")
@@ -183,7 +183,7 @@ exports.searchUsers = async (req, res) => {
 exports.findExistingConversation = async (req, res) => {
   try {
     const { userId } = req.params;
-    const currentUserId = req.user;
+    const currentUserId = req.userId;
 
     const participantIds = [currentUserId.toString(), userId].sort();
 

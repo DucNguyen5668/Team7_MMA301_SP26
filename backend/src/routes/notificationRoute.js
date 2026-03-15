@@ -16,7 +16,7 @@ router.post("/push-token", authenticate, async (req, res) => {
       return res.status(400).json({ message: "Không phải Expo Push Token" });
     }
 
-    await User.findByIdAndUpdate(req.user, { pushToken: token });
+    await User.findByIdAndUpdate(userId, { pushToken: token });
     res.json({ success: true });
   } catch (err) {
     console.error("Save push token error:", err);
@@ -26,7 +26,7 @@ router.post("/push-token", authenticate, async (req, res) => {
 
 router.delete("/push-token", authenticate, async (req, res) => {
   try {
-    await User.findByIdAndUpdate(req.user, { pushToken: null });
+    await User.findByIdAndUpdate(userId, { pushToken: null });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ message: "Lỗi xóa push token" });

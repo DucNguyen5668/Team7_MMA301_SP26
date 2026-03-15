@@ -15,7 +15,9 @@ export default function ReviewItem({ review }: ReviewItemProps) {
       <View style={styles.reviewHeader}>
         <Image
           source={{
-            uri: review.ratingUser?.avatar || `https://i.pravatar.cc/150?img=1`,
+            uri:
+              review.ratingUser?.avatar ||
+              `https://cdn-icons-png.flaticon.com/128/847/847969.png`,
           }}
           style={styles.reviewerAvatar}
         />
