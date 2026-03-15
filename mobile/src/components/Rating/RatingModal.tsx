@@ -22,7 +22,7 @@ interface RatingModalProps {
   onClose: () => void;
   onSubmitSuccess?: () => void;
   user: {
-    id: string;
+    _id: string;
     name: string;
     avatar: string;
   };
@@ -48,7 +48,7 @@ export default function RatingModal({
     try {
       setSubmitting(true);
       await API.post("/ratings", {
-        ratedUserId: user.id,
+        ratedUserId: user._id,
         conversationId,
         rating,
         review: review.trim(),

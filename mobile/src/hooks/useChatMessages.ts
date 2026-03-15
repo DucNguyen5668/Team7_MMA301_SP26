@@ -2,18 +2,18 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { io, Socket } from "socket.io-client";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { IP_ADDRESS } from "../constants/ip";
-import { Message } from "../types/message";
+import { Message, MessageBackend, User, Conversation } from "../types/message";
 import * as FileSystem from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
-
-import { formatMessageTimestamp } from "../utils";
+import { formatMessageTimestamp, formatChatTimestamp } from "../utils";
 import messageService from "../services/messageService";
+import { API } from "../services/api";
 
 const SOCKET_URL = `http://${IP_ADDRESS}:5000`;
 
-function toMessage(msg: any, currentUserId: string): Message {
+function toMessage(msg: MessageBackend, currentUserId: string): Message {
   const isMe =
-    msg.sender === currentUserId || msg.sender?._id === currentUserId;
+    msg.sender === currentUserId || (msg.sender as User)?._id === currentUserId;
 
   const isRead = Array.isArray(msg.readBy)
     ? msg.readBy.includes(currentUserId)
@@ -22,7 +22,7 @@ function toMessage(msg: any, currentUserId: string): Message {
   let content = msg.content ?? "";
   let attachment = undefined;
 
-  if (msg.attachment?.data) {
+  if (msg.attachment) {
     attachment = {
       data: msg.attachment.data,
       type: msg.attachment.type,
@@ -43,25 +43,34 @@ function toMessage(msg: any, currentUserId: string): Message {
 }
 
 interface UseChatMessagesOptions {
-  conversationId: string;
+  // null = temp mode (chưa có conversation)
+  conversationId: string | null;
+  // targetUserId dùng khi conversationId = null để tạo conversation khi gửi tin đầu tiên
+  targetUserId?: string | null;
   currentUserId: string;
   onMessagesRead?: (data: { conversationId: string; readBy: string }) => void;
+  onConversationCreated?: (conversation: Conversation) => void;
 }
 
 export const useChatMessages = ({
   conversationId,
+  targetUserId,
   currentUserId,
   onMessagesRead,
+  onConversationCreated,
 }: UseChatMessagesOptions) => {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(conversationId !== null); // temp mode không cần load
   const [sending, setSending] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const socketRef = useRef<Socket | null>(null);
 
-  // ─── Socket ──────────────────────────────────────────────────────────────
+  // Lưu conversationId hiện tại (có thể thay đổi sau khi tạo conversation)
+  const activeConvIdRef = useRef<string | null>(conversationId);
+
+  // ─── Socket setup ─────────────────────────────────────────────────────────
   useEffect(() => {
     let socket: Socket;
 
@@ -75,9 +84,13 @@ export const useChatMessages = ({
       });
       socketRef.current = socket;
 
-      socket.on("connect", () =>
-        socket.emit("joinConversation", conversationId),
-      );
+      // Chỉ join khi có conversationId
+      socket.on("connect", () => {
+        if (activeConvIdRef.current) {
+          socket.emit("joinConversation", activeConvIdRef.current);
+        }
+      });
+
       socket.on("connect_error", (err) => console.error("Socket error:", err));
       socket.on("error", (e: any) =>
         setError(e.msg || "Socket connection error"),
@@ -89,12 +102,6 @@ export const useChatMessages = ({
           if (prev.some((m) => m.id === newMsg.id)) return prev;
           return [newMsg, ...prev];
         });
-
-        const senderId =
-          typeof msg.sender === "string" ? msg.sender : msg.sender?._id;
-        if (senderId !== currentUserId) {
-          socket.emit("joinConversation", conversationId);
-        }
       });
 
       socket.on("messageDeleted", ({ messageId }: { messageId: string }) => {
@@ -113,31 +120,43 @@ export const useChatMessages = ({
     })();
 
     return () => {
-      socket?.emit("leaveConversation", conversationId);
+      if (activeConvIdRef.current) {
+        socket?.emit("leaveConversation", activeConvIdRef.current);
+      }
       socket?.disconnect();
     };
-  }, [conversationId, currentUserId]);
+  }, [currentUserId]);
 
-  const deleteMessage = useCallback(
-    (messageId: string) => {
-      if (!socketRef.current) return;
-      socketRef.current.emit("deleteMessage", {
-        messageId,
-        conversationId,
-      });
-    },
-    [conversationId],
-  );
+  // Join khi conversationId thay đổi (ví dụ: vừa tạo conversation mới)
+  useEffect(() => {
+    activeConvIdRef.current = conversationId;
+    if (conversationId && socketRef.current?.connected) {
+      socketRef.current.emit("joinConversation", conversationId);
+    }
+  }, [conversationId]);
 
-  // ─── Fetch initial ────────────────────────────────────────────────────────
+  // ─── Delete ───────────────────────────────────────────────────────────────
+  const deleteMessage = useCallback((messageId: string) => {
+    if (!socketRef.current || !activeConvIdRef.current) return;
+    socketRef.current.emit("deleteMessage", {
+      messageId,
+      conversationId: activeConvIdRef.current,
+    });
+  }, []);
+
+  // ─── Fetch initial (chỉ khi có conversationId) ────────────────────────────
   const fetchInitialMessages = useCallback(async () => {
+    if (!conversationId) {
+      setLoading(false);
+      return;
+    }
     try {
       setError(null);
       setLoading(true);
 
       const data = await messageService.getMessages(conversationId, 1, 20);
 
-      const transformed: Message[] = data.messages.map((m: Message) =>
+      const transformed: Message[] = data.messages.map((m: MessageBackend) =>
         toMessage(m, currentUserId),
       );
 
@@ -154,29 +173,25 @@ export const useChatMessages = ({
     fetchInitialMessages();
   }, [fetchInitialMessages]);
 
-  // ─── Load more (cursor-based) ─────────────────────────────────────────────
+  // ─── Load more ────────────────────────────────────────────────────────────
   const loadMoreMessages = useCallback(async () => {
-    if (!hasMore || loadingMore) return;
+    if (!hasMore || loadingMore || !activeConvIdRef.current) return;
 
-    // Lấy id của tin nhắn cũ nhất hiện tại (cuối mảng vì inverted)
     const oldestMessage = messages[messages.length - 1];
     if (!oldestMessage) return;
 
     try {
       setLoadingMore(true);
       setError(null);
-
       const data = await messageService.getMessages(
-        conversationId,
+        activeConvIdRef.current,
         1,
         20,
         oldestMessage.id,
       );
-
       const transformed: Message[] = data.messages.map((m: any) =>
         toMessage(m, currentUserId),
       );
-
       setMessages((prev) => [...prev, ...transformed]);
       setHasMore(data.hasMore);
     } catch (err: any) {
@@ -186,32 +201,75 @@ export const useChatMessages = ({
     }
   }, [conversationId, currentUserId, hasMore, loadingMore, messages]);
 
-  // ─── Send ─────────────────────────────────────────────────────────────────
+  // ─── Ensure conversation exists (tạo nếu cần) ────────────────────────────
+  /**
+   * Nếu chưa có conversationId nhưng có targetUserId:
+   * - Gọi API tạo conversation
+   * - Join socket room mới
+   * - Notify ChatScreen qua onConversationCreated
+   * - Trả về conversationId mới
+   */
+  const ensureConversation = useCallback(async (): Promise<string | null> => {
+    if (activeConvIdRef.current) return activeConvIdRef.current;
+    if (!targetUserId) return null;
+
+    try {
+      const { data } = await API.post("/conversations", {
+        userId: targetUserId,
+      });
+
+      const newConvId = data._id;
+      activeConvIdRef.current = newConvId;
+
+      // Join socket room
+      socketRef.current?.emit("joinConversation", newConvId);
+
+      // Notify parent để cập nhật state conversation
+      if (onConversationCreated) {
+        const conv: Conversation = {
+          id: newConvId,
+          opponentId: targetUserId,
+          opponentName:
+            data.participants?.find((p: User) => p._id !== currentUserId)
+              ?.fullName ?? "",
+          opponentAvatar:
+            data.participants?.find((p: User) => p._id !== currentUserId)
+              ?.avatar ?? "",
+          lastMessage: "",
+          lastMessageTime: new Date(data.updatedAt ?? Date.now()),
+          timestamp: formatChatTimestamp(data.updatedAt ?? new Date()),
+          unread: 0,
+        };
+        onConversationCreated(conv);
+      }
+
+      return newConvId;
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Không thể tạo cuộc trò chuyện");
+      return null;
+    }
+  }, [targetUserId, currentUserId, onConversationCreated]);
+
+  // ─── Send text ────────────────────────────────────────────────────────────
   const sendMessage = useCallback(
-    (content: string, type = "text") => {
+    async (content: string, type = "text") => {
       if (!content.trim() || !socketRef.current) return;
+
+      const convId = await ensureConversation();
+      if (!convId) return;
+
       setSending(true);
       socketRef.current.emit("sendMessage", {
-        conversationId,
+        conversationId: convId,
         content: content.trim(),
         type,
       });
       setSending(false);
     },
-    [conversationId],
+    [ensureConversation],
   );
 
-  const sendImageMessage = useCallback(
-    (uri: string) => sendMessage(uri, "image"),
-    [sendMessage],
-  );
-
-  const sendLocationMessage = useCallback(
-    (loc: { lat: number; lng: number; address: string }) =>
-      sendMessage(JSON.stringify(loc), "location"),
-    [sendMessage],
-  );
-
+  // ─── Send media ───────────────────────────────────────────────────────────
   const MAX_IMAGE_SIZE_MB = 5;
   const MAX_VIDEO_SIZE_MB = 10;
 
@@ -222,6 +280,9 @@ export const useChatMessages = ({
       content: string = "",
     ) => {
       if (!socketRef.current) return;
+
+      const convId = await ensureConversation();
+      if (!convId) return;
 
       const maxBytes =
         (type === "image" ? MAX_IMAGE_SIZE_MB : MAX_VIDEO_SIZE_MB) *
@@ -247,7 +308,6 @@ export const useChatMessages = ({
           const mimeType = type === "image" ? `image/${ext}` : `video/${ext}`;
           const dataUri = `data:${mimeType};base64,${base64}`;
 
-          // Encode thumbnail nếu là video
           let thumbnailDataUri: string | undefined;
           if (type === "video" && asset.thumbnail) {
             const thumbFile = new FileSystem.File(asset.thumbnail);
@@ -256,7 +316,7 @@ export const useChatMessages = ({
           }
 
           socketRef.current.emit("sendMessage", {
-            conversationId,
+            conversationId: convId,
             type,
             content,
             attachment: {
@@ -272,7 +332,7 @@ export const useChatMessages = ({
         }
       }
     },
-    [conversationId],
+    [ensureConversation],
   );
 
   return {
@@ -283,8 +343,6 @@ export const useChatMessages = ({
     hasMore,
     error,
     sendMessage,
-    sendImageMessage,
-    sendLocationMessage,
     sendMediaMessage,
     deleteMessage,
     loadMoreMessages,

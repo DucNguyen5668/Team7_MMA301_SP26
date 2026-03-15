@@ -3,11 +3,12 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 
 import HomeScreen from "../screens/home/HomeScreen";
-import ManageScreen from "../screens/ManageScreen";
 import PostScreen from "../screens/PostScreen";
 import ChatScreen from "../screens/ChatScreen";
 import ProfileScreen from "../screens/ProfileScreen";
-
+import HomeStack from "./HomeStack";
+import ManageStack from "./ManageStack";
+import SearchStack from "./SearchStack";
 const Tab = createBottomTabNavigator();
 
 export default function BottomTabs() {
@@ -15,29 +16,40 @@ export default function BottomTabs() {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
+        tabBarActiveTintColor: "#FFBA00",
+        tabBarInactiveTintColor: "#999",
+        tabBarStyle: {
+          borderTopWidth: 0,
+          elevation: 10,
+          shadowOpacity: 0.1,
+          height: 60,
+          paddingBottom: 8,
+        },
+        tabBarLabelStyle: { fontSize: 10, fontWeight: "600" },
       }}
     >
+      
       <Tab.Screen
-        name="Home"
-        component={HomeScreen}
+        name="Search"
+        component={SearchStack}
         options={{
-          tabBarLabel: "Trang chủ",
+          tabBarLabel: "Khám phá",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home" size={size} color={color} />
+            <Ionicons name="compass" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="MyProduct"
+        component={ManageStack}
+        options={{
+          tabBarLabel: "Tin của tôi",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="list" size={size} color={color} />
           ),
         }}
       />
 
-      <Tab.Screen
-        name="Manage"
-        component={ManageScreen}
-        options={{
-          tabBarLabel: "Quản lý tin",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="pricetag-outline" size={size} color={color} />
-          ),
-        }}
-      />
 
       <Tab.Screen
         name="Post"

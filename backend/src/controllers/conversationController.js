@@ -1,9 +1,10 @@
 const Conversation = require("../models/Conversation");
 const Message = require("../models/Message");
+const User = require("../models/User");
 
 exports.getConversations = async (req, res) => {
   try {
-    const userId = req.user;
+    const userId = req.userId;
     const { filter, search } = req.query;
 
     const conversations = await Conversation.find({ participants: userId })
@@ -24,7 +25,7 @@ exports.getConversations = async (req, res) => {
           (p) => p._id.toString() !== userId.toString(),
         );
 
-        switch (conv.lastMessage.type) {
+        switch (conv.lastMessage?.type) {
           case "image":
             conv.lastMessage.content = "Đã gửi 1 ảnh";
             break;
@@ -69,7 +70,7 @@ exports.getConversations = async (req, res) => {
 exports.getConversationById = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user;
+    const userId = req.userId;
 
     const conv = await Conversation.findOne({
       _id: id,
@@ -94,13 +95,12 @@ exports.getConversationById = async (req, res) => {
 exports.createOrGetPrivateConversation = async (req, res) => {
   try {
     const { userId } = req.body;
-    const currentUserId = req.user;
+    const currentUserId = req.userId;
 
     if (userId === currentUserId.toString()) {
       return res.status(400).json({ message: "Cannot chat with yourself" });
     }
 
-    // Sort để đảm bảo unique
     const participantIds = [currentUserId, userId].sort();
 
     let conversation = await Conversation.findOne({
@@ -129,7 +129,7 @@ exports.createOrGetPrivateConversation = async (req, res) => {
 exports.markAsRead = async (req, res) => {
   try {
     const { convId } = req.params;
-    const userId = req.user;
+    const userId = req.userId;
 
     const conversation = await Conversation.findOne({
       _id: convId,
@@ -152,6 +152,51 @@ exports.markAsRead = async (req, res) => {
   } catch (error) {
     console.log("error", error);
 
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.searchUsers = async (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q || !q.trim()) {
+      return res.json([]);
+    }
+
+    const regex = new RegExp(q.trim(), "i");
+
+    const users = await User.find({
+      _id: { $ne: userId },
+      $or: [{ fullName: regex }, { email: regex }],
+    })
+      .select("_id fullName email avatar")
+      .limit(20)
+      .lean();
+
+    res.json(users);
+  } catch (err) {
+    console.error("Search users error:", err);
+    res.status(500).json({ message: "Lỗi tìm kiếm người dùng" });
+  }
+};
+
+exports.findExistingConversation = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const currentUserId = req.userId;
+
+    const participantIds = [currentUserId.toString(), userId].sort();
+
+    const conversation = await Conversation.findOne({
+      participants: { $all: participantIds, $size: 2 },
+    }).lean();
+
+    if (!conversation) {
+      return res.json({ exists: false, conversation: null });
+    }
+
+    res.json({ exists: true, conversation });
+  } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };

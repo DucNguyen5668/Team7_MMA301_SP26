@@ -24,9 +24,13 @@ const SOCKET_URL = `http://${IP_ADDRESS}:5000`;
 
 interface InboxScreenProps {
   onOpenChat: (conversation: Conversation) => void;
+  onCompose: () => void;
 }
 
-export default function InboxScreen({ onOpenChat }: InboxScreenProps) {
+export default function InboxScreen({
+  onOpenChat,
+  onCompose,
+}: InboxScreenProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState<"all" | "unread">("all");
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -52,7 +56,7 @@ export default function InboxScreen({ onOpenChat }: InboxScreenProps) {
             opponentName: conv.opponent?.fullName || "Unknown User",
             opponentAvatar:
               conv.opponent?.avatar ||
-              `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 70)}`,
+              `https://cdn-icons-png.flaticon.com/128/847/847969.png`,
             lastMessage: conv.lastMessage?.content || "",
             lastMessageTime: new Date(
               conv.lastMessage?.createdAt || conv.updatedAt,
@@ -85,24 +89,41 @@ export default function InboxScreen({ onOpenChat }: InboxScreenProps) {
       });
       socketRef.current = socket;
 
-      socket.on("unreadUpdate", ({ conversationId, unreadCount }: any) => {
-        setConversations((prev) =>
-          prev.map((c) =>
-            c.id.toString() === conversationId.toString()
-              ? { ...c, unread: unreadCount }
-              : c,
-          ),
-        );
-      });
+      socket.on("conversationUpdated", (data: any) => {
+        setConversations((prev) => {
+          const index = prev.findIndex(
+            (c) => c.id.toString() === data.conversationId.toString(),
+          );
 
-      socket.on("markedAsRead", ({ conversationId }: any) => {
-        setConversations((prev) =>
-          prev.map((c) =>
-            c.id.toString() === conversationId.toString()
-              ? { ...c, unread: 0 }
-              : c,
-          ),
-        );
+          const updatedConv: Conversation = {
+            id: data.conversationId,
+            opponentId: data.opponent._id,
+            opponentName: data.opponent.fullName,
+            opponentAvatar:
+              data.opponent.avatar ||
+              `https://cdn-icons-png.flaticon.com/128/847/847969.png`,
+
+            lastMessage: data.lastMessage.content || "",
+            lastMessageTime: new Date(data.lastMessage.createdAt),
+            timestamp: formatChatTimestamp(data.lastMessage.createdAt),
+            unread: data.unreadCount,
+          };
+
+          if (index === -1) {
+            return [updatedConv, ...prev];
+          }
+
+          const updated = [...prev];
+          updated[index] = updatedConv;
+
+          updated.sort(
+            (a, b) =>
+              new Date(b.lastMessageTime).getTime() -
+              new Date(a.lastMessageTime).getTime(),
+          );
+
+          return updated;
+        });
       });
     })();
 
@@ -131,34 +152,6 @@ export default function InboxScreen({ onOpenChat }: InboxScreenProps) {
     0,
   );
 
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FDD835" />
-        <Text style={styles.loadingText}>Đang tải tin nhắn...</Text>
-      </View>
-    );
-  }
-
-  if (error && conversations.length === 0) {
-    return (
-      <View style={styles.container}>
-        <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-        <View style={styles.errorState}>
-          <Ionicons name="alert-circle-outline" size={80} color="#FF5722" />
-          <Text style={styles.errorTitle}>Đã xảy ra lỗi</Text>
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity
-            style={styles.retryButton}
-            onPress={fetchConversations}
-          >
-            <Text style={styles.retryButtonText}>Thử lại</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
@@ -170,8 +163,8 @@ export default function InboxScreen({ onOpenChat }: InboxScreenProps) {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Tin nhắn</Text>
-          <TouchableOpacity style={styles.composeButton}>
-            <Ionicons name="chatbubble-ellipses" size={20} color="#222" />
+          <TouchableOpacity style={styles.composeButton} onPress={onCompose}>
+            <Ionicons name="search" size={20} color="#222" />
           </TouchableOpacity>
         </View>
 
@@ -228,36 +221,58 @@ export default function InboxScreen({ onOpenChat }: InboxScreenProps) {
         </View>
       </LinearGradient>
 
-      <FlatList
-        data={conversations}
-        renderItem={({ item }) => (
-          <ConversationItem item={item} onPress={onOpenChat} />
-        )}
-        keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={
-          conversations.length === 0
-            ? styles.emptyListContent
-            : styles.listContent
-        }
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={["#FDD835"]}
-            tintColor="#FDD835"
-          />
-        }
-        ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <Ionicons name="chatbubbles-outline" size={80} color="#ddd" />
-            <Text style={styles.emptyStateTitle}>Chưa có tin nhắn</Text>
-            <Text style={styles.emptyStateText}>
-              Các cuộc trò chuyện của bạn sẽ xuất hiện ở đây
-            </Text>
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#FDD835" />
+          <Text style={styles.loadingText}>Đang tải tin nhắn...</Text>
+        </View>
+      ) : error && conversations.length === 0 ? (
+        <View style={styles.container}>
+          <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+          <View style={styles.errorState}>
+            <Ionicons name="alert-circle-outline" size={80} color="#FF5722" />
+            <Text style={styles.errorTitle}>Đã xảy ra lỗi</Text>
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity
+              style={styles.retryButton}
+              onPress={fetchConversations}
+            >
+              <Text style={styles.retryButtonText}>Thử lại</Text>
+            </TouchableOpacity>
           </View>
-        }
-      />
+        </View>
+      ) : (
+        <FlatList
+          data={conversations}
+          renderItem={({ item }) => (
+            <ConversationItem item={item} onPress={onOpenChat} />
+          )}
+          keyExtractor={(item) => item.id.toString()}
+          contentContainerStyle={
+            conversations.length === 0
+              ? styles.emptyListContent
+              : styles.listContent
+          }
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={["#FDD835"]}
+              tintColor="#FDD835"
+            />
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <Ionicons name="chatbubbles-outline" size={80} color="#ddd" />
+              <Text style={styles.emptyStateTitle}>Chưa có tin nhắn</Text>
+              <Text style={styles.emptyStateText}>
+                Các cuộc trò chuyện của bạn sẽ xuất hiện ở đây
+              </Text>
+            </View>
+          }
+        />
+      )}
     </View>
   );
 }

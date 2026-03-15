@@ -1,5 +1,5 @@
 import React, { useContext } from "react";
-import { NavigationContainer } from "@react-navigation/native";
+import { NavigationContainer, useNavigation } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { AuthContext } from "../context/authContext";
 import LoginScreen from "../screens/auth/LoginScreen";
@@ -14,13 +14,13 @@ export default function AppNavigator() {
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <NavigationContainer>
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
-          {user ? (
-            <Stack.Screen name="Main" component={BottomTabs} />
-          ) : (
-            <Stack.Screen name="Login" component={LoginScreen} />
-          )}
-        </Stack.Navigator>
+          <Stack.Navigator screenOptions={{ headerShown: false }}>
+            {user ? (
+              <Stack.Screen name="Main" component={BottomTabs} />
+            ) : (
+              <Stack.Screen name="Login" component={LoginScreen} />
+            )}
+          </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaView>
   );

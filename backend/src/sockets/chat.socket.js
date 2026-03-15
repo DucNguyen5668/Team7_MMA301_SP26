@@ -1,13 +1,44 @@
+// sockets/chatSocket.js
 const Conversation = require("../models/Conversation");
 const Message = require("../models/Message");
+const User = require("../models/User");
+
+const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
+
+async function sendPushNotifications(notifications) {
+  const valid = notifications.filter(
+    (n) => n.pushToken && n.pushToken.startsWith("ExponentPushToken"),
+  );
+  if (!valid.length) return;
+
+  const messages = valid.map(({ pushToken, title, body, data = {} }) => ({
+    to: pushToken,
+    sound: "default",
+    title,
+    body,
+    data,
+    badge: 1,
+  }));
+
+  try {
+    await fetch(EXPO_PUSH_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify(messages),
+    });
+  } catch (err) {
+    console.error("Batch push error:", err?.message);
+  }
+}
 
 function chatSocket(io, socket) {
   const userId = socket.user;
-  // console.log("User connected:", userId);
 
-  // Join immediately on connect so unread pushes reach this user
-  // even when they're on the inbox screen (not inside any conversation)
   socket.join(`user:${userId}`);
+  socket.data.userId = userId;
 
   socket.on("sendMessage", async (data) => {
     const {
@@ -18,7 +49,9 @@ function chatSocket(io, socket) {
     } = data;
 
     try {
-      const conv = await Conversation.findById(conversationId);
+      // 1️⃣ lấy conversation
+      const conv = await Conversation.findById(conversationId).lean();
+
       if (
         !conv ||
         !conv.participants.map((p) => p.toString()).includes(userId.toString())
@@ -27,6 +60,10 @@ function chatSocket(io, socket) {
         return;
       }
 
+      // 2️⃣ check conversation mới
+      // const isNewConversation = !conv.lastMessage;
+
+      // 3️⃣ tạo message
       const message = await Message.create({
         conversation: conversationId,
         sender: userId,
@@ -36,11 +73,13 @@ function chatSocket(io, socket) {
         readBy: [userId],
       });
 
+      // 4️⃣ update conversation
       await Conversation.findByIdAndUpdate(conversationId, {
         lastMessage: message._id,
         updatedAt: new Date(),
       });
 
+      // 5️⃣ emit realtime message cho room
       io.to(conversationId.toString()).emit("newMessage", {
         _id: message._id,
         conversation: conversationId,
@@ -52,21 +91,82 @@ function chatSocket(io, socket) {
         readBy: message.readBy,
       });
 
-      // notify unread count
+      // 6️⃣ lấy sender info
+      const sender = await User.findById(userId)
+        .select("fullName avatar")
+        .lean();
+
+      const senderName = sender?.fullName || "Ai đó";
+
+      // 7️⃣ body notification
+      let notifBody = content || "";
+      if (type === "image") notifBody = "Đã gửi 1 ảnh 🖼️";
+      else if (type === "video") notifBody = "Đã gửi 1 video 🎥";
+      else if (type === "file") notifBody = "Đã gửi 1 file 📎";
+
+      // 8️⃣ participants khác
       const otherParticipants = conv.participants.filter(
         (p) => p.toString() !== userId.toString(),
       );
 
-      for (const participantId of otherParticipants) {
+      const otherUsers = await User.find({ _id: { $in: otherParticipants } })
+        .select("_id pushToken")
+        .lean();
+
+      // 9️⃣ sockets đang trong room
+      const socketsInRoom = await io
+        .in(conversationId.toString())
+        .fetchSockets();
+
+      const userIdsInRoom = new Set(
+        socketsInRoom.map((s) => s.data?.userId).filter(Boolean),
+      );
+
+      const pushPayloads = [];
+
+      for (const participant of otherUsers) {
+        const participantId = participant._id.toString();
+        const isInRoom = userIdsInRoom.has(participantId);
+
         const unreadCount = await _countUnreadForConversation(
           conversationId,
           participantId,
         );
 
-        io.to(`user:${participantId}`).emit("unreadUpdate", {
+        io.to(`user:${participantId}`).emit("conversationUpdated", {
           conversationId,
+
+          opponent: {
+            _id: sender?._id ?? userId,
+            fullName: senderName,
+            avatar: sender?.avatar,
+          },
+
+          lastMessage: {
+            content,
+            type,
+            createdAt: message.createdAt,
+          },
+
+          updatedAt: message.createdAt,
           unreadCount,
         });
+
+        if (!isInRoom && participant.pushToken) {
+          pushPayloads.push({
+            pushToken: participant.pushToken,
+            title: senderName,
+            body: notifBody,
+            data: {
+              conversationId: conversationId.toString(),
+              type: "new_message",
+            },
+          });
+        }
+      }
+      // 🚀 send push
+      if (pushPayloads.length > 0) {
+        sendPushNotifications(pushPayloads).catch(() => {});
       }
     } catch (err) {
       console.error("sendMessage error:", err);
@@ -81,16 +181,11 @@ function chatSocket(io, socket) {
         socket.emit("error", { msg: "Tin nhắn không tồn tại" });
         return;
       }
-
-      // Chỉ cho phép người gửi xóa tin của mình
       if (message.sender.toString() !== userId.toString()) {
         socket.emit("error", { msg: "Không có quyền xóa tin nhắn này" });
         return;
       }
-
       await Message.findByIdAndDelete(messageId);
-
-      // Notify all participants in the conversation
       io.to(conversationId.toString()).emit("messageDeleted", {
         messageId,
         conversationId,
@@ -101,30 +196,31 @@ function chatSocket(io, socket) {
     }
   });
 
-  // ─── Join Conversation Room
   socket.on("joinConversation", async (convId) => {
-    // console.log("User joined conversation:", convId, "| userId:", userId);
     socket.join(convId.toString());
 
     try {
-      // Mark all unread messages in this conversation as read by current user
       await _markConversationAsRead(convId, userId);
 
-      // Tell this client their unread count for this conversation is now 0
-      socket.emit("markedAsRead", { conversationId: convId });
-
-      // Notify other participants that their messages were seen
       const conv = await Conversation.findById(convId).lean();
-      if (conv) {
-        const otherParticipants = conv.participants.filter(
-          (p) => p.toString() !== userId.toString(),
-        );
-        for (const participantId of otherParticipants) {
-          io.to(`user:${participantId}`).emit("messagesRead", {
-            conversationId: convId,
-            readBy: userId,
-          });
-        }
+      if (!conv) return;
+
+      const otherParticipants = conv.participants.filter(
+        (p) => p.toString() !== userId.toString(),
+      );
+
+      // update inbox của chính user
+      io.to(`user:${userId}`).emit("conversationUpdated", {
+        conversationId: convId,
+        unreadCount: 0,
+      });
+
+      // notify người kia message đã read
+      for (const participantId of otherParticipants) {
+        io.to(`user:${participantId}`).emit("messagesRead", {
+          conversationId: convId,
+          readBy: userId,
+        });
       }
     } catch (err) {
       console.error("joinConversation error:", err);
@@ -160,23 +256,6 @@ async function _countUnreadForConversation(convId, userId) {
     sender: { $ne: userId },
     readBy: { $nin: [userId] },
   });
-}
-
-async function _countTotalUnreadForUser(userId) {
-  const conversations = await Conversation.find({
-    participants: userId,
-  }).lean();
-
-  let total = 0;
-  for (const conv of conversations) {
-    const count = await Message.countDocuments({
-      conversation: conv._id,
-      sender: { $ne: userId },
-      readBy: { $nin: [userId] },
-    });
-    total += count;
-  }
-  return total;
 }
 
 module.exports = chatSocket;

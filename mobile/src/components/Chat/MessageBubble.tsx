@@ -74,14 +74,12 @@ export default function MessageBubble({
             activeOpacity={0.9}
           >
             {item.attachment.thumbnail ? (
-              // ✅ Có thumbnail → render ảnh nhẹ, không lag FlatList
               <Image
                 source={{ uri: item.attachment.thumbnail }}
                 style={styles.messageImage}
                 resizeMode="cover"
               />
             ) : (
-              // Fallback nếu chưa có thumbnail
               <View style={[styles.messageImage, styles.videoFallback]}>
                 <Ionicons name="videocam" size={32} color="#ccc" />
               </View>
@@ -139,6 +137,7 @@ const styles = StyleSheet.create({
     maxWidth: "75%",
     borderRadius: 18,
     paddingHorizontal: 16,
+    paddingLeft: 14,
     paddingVertical: 12,
   },
   messageBubbleMe: {
@@ -156,8 +155,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   messageImage: {
-    width: 200,
-    height: 150,
+    width: 220,
+    height: 160,
     borderRadius: 12,
   },
   videoContainer: {
