@@ -161,7 +161,6 @@ export default function ChatRoomScreen({
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={30}
     >
       {/* Header dùng dữ liệu từ conversation hoặc tempUser */}
       <ChatHeader

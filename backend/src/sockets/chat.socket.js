@@ -164,10 +164,7 @@ function chatSocket(io, socket) {
           });
         }
       }
-      // 🚀 send push
-      if (pushPayloads.length > 0) {
-        sendPushNotifications(pushPayloads).catch(() => {});
-      }
+
     } catch (err) {
       console.error("sendMessage error:", err);
       socket.emit("error", { msg: "Lỗi gửi tin" });
