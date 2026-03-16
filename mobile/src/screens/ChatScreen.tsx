@@ -80,6 +80,24 @@ export default function ChatScreen() {
     setCurrentScreen("chat");
   };
 
+  const opponentInfo = selectedConversation
+  ? {
+      opponentId: selectedConversation.opponentId,
+      opponentName: selectedConversation.opponentName,
+      opponentAvatar: selectedConversation.opponentAvatar,
+      conversationId: selectedConversation.id.toString(),
+    }
+  : tempUser
+  ? {
+      opponentId: tempUser._id,
+      opponentName: tempUser.fullName,
+      opponentAvatar:
+        tempUser.avatar ||
+        "https://cdn-icons-png.flaticon.com/128/847/847969.png",
+      conversationId: "",
+    }
+  : null;
+
   return (
     <SafeAreaView style={styles.container}>
       {currentScreen === "inbox" && (
@@ -91,7 +109,7 @@ export default function ChatScreen() {
 
       {currentScreen === "chat" && (selectedConversation || tempUser) && (
         <ChatRoomScreen
-          key={route.params?._t || tempUser?._id || "temp-chat"} // ← thêm key quan trọng
+          key={route.params?._t || tempUser?._id || "temp-chat"}
           conversation={selectedConversation}
           tempUser={tempUser}
           onConversationCreated={onConversationCreated}
@@ -100,12 +118,12 @@ export default function ChatScreen() {
         />
       )}
 
-      {currentScreen === "profile" && selectedConversation && (
+      {currentScreen === "profile" && opponentInfo && (
         <ProfileScreen
-          opponentId={selectedConversation.opponentId}
-          opponentName={selectedConversation.opponentName}
-          opponentAvatar={selectedConversation.opponentAvatar}
-          conversationId={selectedConversation.id.toString()}
+          opponentId={opponentInfo.opponentId}
+          opponentName={opponentInfo.opponentName}
+          opponentAvatar={opponentInfo.opponentAvatar}
+          conversationId={opponentInfo.conversationId}
           onBack={backToChat}
         />
       )}

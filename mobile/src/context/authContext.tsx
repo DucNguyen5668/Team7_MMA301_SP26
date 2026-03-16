@@ -27,6 +27,7 @@ export const AuthProvider = ({ children }: any) => {
     setLoading(false);
   };
 
+  // LOGIN
   const login = async (email: string, password: string) => {
     const res = await API.post("/auth/login", {
       email,
@@ -35,6 +36,11 @@ export const AuthProvider = ({ children }: any) => {
 
     await AsyncStorage.setItem("token", res.data.token);
     setUser(res.data.user);
+  };
+
+  // REGISTER
+  const register = async (fullName: string, email: string, password: string) => {
+    await API.post("/auth/register", { fullName, email, password });
   };
 
   const logout = async () => {
@@ -47,7 +53,16 @@ export const AuthProvider = ({ children }: any) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading, updateUser }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        login,
+        register,
+        logout,
+        loading,
+        updateUser  
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
