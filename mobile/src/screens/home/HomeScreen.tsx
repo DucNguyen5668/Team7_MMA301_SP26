@@ -8,6 +8,8 @@ import {
   Image,
   TouchableOpacity,
   RefreshControl,
+  Platform,
+  StatusBar,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -156,7 +158,7 @@ const renderTabs = () => (
 
 const styles = StyleSheet.create({
   header: {
-    paddingTop: 50,
+    paddingTop: Platform.OS === "ios" ? 55 : StatusBar.currentHeight ? StatusBar.currentHeight + 15 : 40,
     paddingBottom: 15,
     paddingHorizontal: 15,
   },

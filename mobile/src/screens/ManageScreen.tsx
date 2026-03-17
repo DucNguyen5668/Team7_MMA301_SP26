@@ -10,6 +10,7 @@ import {
   RefreshControl,
   ActivityIndicator,
   StatusBar,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
@@ -295,7 +296,9 @@ const styles = StyleSheet.create({
 
   /* Header */
   header: {
-    padding: 20,
+    paddingTop: Platform.OS === "ios" ? 55 : StatusBar.currentHeight ? StatusBar.currentHeight + 15 : 40,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
     backgroundColor: "#FF7A00",
   },
   headerInner: {

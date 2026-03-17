@@ -13,6 +13,8 @@ import {
   Modal,
   Pressable,
   Alert,
+  Platform,
+  StatusBar,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -342,7 +344,11 @@ export default function SearchScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F5F5F5" },
-  header: {  padding: 16, paddingHorizontal: 16 },
+  header: {  
+    paddingTop: Platform.OS === "ios" ? 55 : StatusBar.currentHeight ? StatusBar.currentHeight + 15 : 40, 
+    paddingHorizontal: 16, 
+    paddingBottom: 16 
+  },
   searchRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   searchBox: {
     flex: 1, flexDirection: "row", alignItems: "center",

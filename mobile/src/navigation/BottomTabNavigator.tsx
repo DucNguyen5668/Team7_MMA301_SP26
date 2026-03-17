@@ -1,4 +1,5 @@
 import React from "react";
+import { Platform } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -22,8 +23,9 @@ export default function BottomTabs() {
           borderTopWidth: 0,
           elevation: 10,
           shadowOpacity: 0.1,
-          height: 60,
-          paddingBottom: 8,
+          height: Platform.OS === "ios" ? 85 : 65,
+          paddingBottom: Platform.OS === "ios" ? 25 : 10,
+          paddingTop: 5,
         },
         tabBarLabelStyle: { fontSize: 10, fontWeight: "600" },
       }}
