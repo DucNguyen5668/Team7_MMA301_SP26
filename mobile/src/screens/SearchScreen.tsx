@@ -106,7 +106,20 @@ export default function SearchScreen() {
   useFocusEffect(
     useCallback(() => {
       doSearch(query, sortBy, category);
-    }, [doSearch]),
+      return () => {
+        setQuery("");
+        setSuggestions([]);
+        setAiInsight("");
+        setProducts([]);
+        setTotal(0);
+        setCategory("Tất cả");
+        setSortBy("newest");
+        setLoading(false);
+        setSuggestLoading(false);
+        setImageSearchLoading(false);
+        setShowCategoryModal(false);
+      };
+    }, [doSearch])
   );
 
   const handleSuggestionPress = (s: string) => {
@@ -344,10 +357,10 @@ export default function SearchScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F5F5F5" },
-  header: {  
-    paddingTop: Platform.OS === "ios" ? 55 : StatusBar.currentHeight ? StatusBar.currentHeight + 15 : 40, 
-    paddingHorizontal: 16, 
-    paddingBottom: 16 
+  header: {
+    paddingTop: Platform.OS === "ios" ? 55 : StatusBar.currentHeight ? StatusBar.currentHeight + 15 : 40,
+    paddingHorizontal: 16,
+    paddingBottom: 16
   },
   searchRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   searchBox: {

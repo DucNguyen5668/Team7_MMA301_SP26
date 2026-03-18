@@ -1,9 +1,10 @@
 import axios from "axios";
 
-const GEMINI_API_KEY = "AIzaSyD-P5iWjsfeuf2k6JRjSlo77mWO_x1Nnwo";
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`;
+const GEMINI_API_KEY = "[ENCRYPTION_KEY]";
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${GEMINI_API_KEY}`;
 
 export const getSuggestions = async (query: string): Promise<string[]> => {
+
   if (!query || query.trim().length < 2) return [];
 
   try {
@@ -77,7 +78,7 @@ export const analyzeImageForSearch = async (
 
     const prompt = `Bạn là chuyên gia nhận diện sản phẩm. Quan sát ảnh và trả về JSON sau:
 {
-  "keyword": "<tên gọi ngắn gọn nhất của vật thể/sản phẩm bằng tiếng Việt, 2-4 chữ>",
+  "keyword": "<tên gọi ngắn gọn chính xác thương hiệu nhất của vật thể/sản phẩm bằng tiếng Việt, 3-6 chữ>",
   "category": "<1 trong các giá trị sau: Xe cộ, Đồ gia dụng, Điện tử, Khác>"
 }
 
